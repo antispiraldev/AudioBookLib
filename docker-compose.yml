@@ -1,0 +1,23 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+      - ./backend:/app
+    env_file: .env
+    environment:
+      - PYTHONPATH=/app
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
