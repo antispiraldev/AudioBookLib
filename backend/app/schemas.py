@@ -19,7 +19,18 @@ class BookOut(BaseModel):
     filename: str
     status: str
     page_count: Optional[int] = None
+    genre: Optional[str] = None
+    year: Optional[int] = None
+    notes: Optional[str] = None
     created_at: datetime
     segments: List[SegmentOut] = []
 
     model_config = {"from_attributes": True}
+
+
+class BookUpdate(BaseModel):
+    title: Optional[str] = None
+    author: Optional[str] = None
+    genre: Optional[str] = None
+    year: Optional[int] = None
+    notes: Optional[str] = None

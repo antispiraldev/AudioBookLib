@@ -15,6 +15,9 @@ class Book(Base):
     # pending → processing → synthesizing → complete | error
     status = Column(String, default="pending")
     page_count = Column(Integer, nullable=True)
+    genre = Column(String, nullable=True)
+    year = Column(Integer, nullable=True)
+    notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     segments = relationship(

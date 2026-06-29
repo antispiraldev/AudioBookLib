@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Book
-from ..schemas import BookOut
+from ..schemas import BookOut, BookUpdate
 from ..tasks import ingest_and_synthesize, synthesize_book
 
 log = logging.getLogger(__name__)
@@ -53,6 +53,18 @@ async def upload_book(
     db.refresh(book)
 
     ingest_and_synthesize.delay(book.id)
+    return book
+
+
+@router.patch("/{book_id}", response_model=BookOut)
+def update_book(book_id: int, data: BookUpdate, db: Session = Depends(get_db)):
+    book = db.get(Book, book_id)
+    if not book:
+        raise HTTPException(404, "Book not found")
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(book, field, value)
+    db.commit()
+    db.refresh(book)
     return book
 
 

@@ -44,8 +44,9 @@ export default function App() {
     if (activeBook?.id === id) setActiveBook(null);
   }
 
-  function handleRetried(updated) {
+  function handleUpdated(updated) {
     setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+    setActiveBook((prev) => (prev?.id === updated.id ? updated : prev));
   }
 
   return (
@@ -73,7 +74,7 @@ export default function App() {
               isPlaying={activeBook?.id === book.id}
               onPlay={setActiveBook}
               onDeleted={handleDeleted}
-              onRetried={handleRetried}
+              onUpdated={handleUpdated}
             />
           ))}
         </div>

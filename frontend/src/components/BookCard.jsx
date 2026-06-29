@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { deleteBook, retryBook } from "../api";
+import EditModal from "./EditModal";
 
 const PALETTE = [
   "#7c6af7", "#5b8af5", "#4caf82", "#e07c5b",
@@ -18,8 +19,10 @@ const STATUS_LABEL = {
   error: "Error",
 };
 
-export default function BookCard({ book, isPlaying, onPlay, onDeleted, onRetried }) {
+export default function BookCard({ book, isPlaying, onPlay, onDeleted, onUpdated }) {
+  const [showEdit, setShowEdit] = useState(false);
   const [retryError, setRetryError] = useState("");
+
   const readySegments = book.segments.filter((s) => s.status === "ready").length;
   const failedSegments = book.segments.filter((s) => s.status === "error").length;
   const total = book.segments.length;
@@ -36,59 +39,79 @@ export default function BookCard({ book, isPlaying, onPlay, onDeleted, onRetried
     setRetryError("");
     try {
       const updated = await retryBook(book.id);
-      onRetried(updated);
+      onUpdated(updated);
     } catch (e) {
       setRetryError(e.message);
     }
   }
 
   return (
-    <div style={{ ...styles.card, outline: isPlaying ? `2px solid ${color(book.id)}` : "none" }}>
-      <div style={{ ...styles.cover, background: color(book.id) }}>
-        {isPlaying && <span style={styles.playingDot}>▶</span>}
-      </div>
+    <>
+      <div style={{ ...styles.card, outline: isPlaying ? `2px solid ${color(book.id)}` : "none" }}>
+        <div style={{ ...styles.cover, background: color(book.id) }}>
+          {isPlaying && <span style={styles.playingDot}>▶</span>}
+        </div>
 
-      <div style={styles.body}>
-        <p style={styles.title} title={book.title}>{book.title}</p>
-        {book.author && <p style={styles.author}>{book.author}</p>}
+        <div style={styles.body}>
+          <p style={styles.title} title={book.title}>{book.title}</p>
 
-        <div style={styles.statusRow}>
-          <span style={{ ...styles.badge, color: book.status === "error" ? "var(--danger)" : "var(--text-muted)" }}>
-            {STATUS_LABEL[book.status] || book.status}
-          </span>
-          {book.status === "synthesizing" && total > 0 && (
-            <span style={styles.count}>{readySegments}/{total}</span>
+          <p style={styles.author}>
+            {[book.author, book.year].filter(Boolean).join(" · ") || <span style={{ color: "var(--border)" }}>—</span>}
+          </p>
+
+          {book.genre && (
+            <span style={styles.genre}>{book.genre}</span>
           )}
-          {book.status === "error" && total > 0 && (
-            <span style={{ ...styles.count, color: "var(--danger)" }}>
-              {failedSegments} of {total} segments failed
+
+          {book.notes && (
+            <p style={styles.notes} title={book.notes}>{book.notes}</p>
+          )}
+
+          <div style={styles.statusRow}>
+            <span style={{ ...styles.badge, color: book.status === "error" ? "var(--danger)" : "var(--text-muted)" }}>
+              {STATUS_LABEL[book.status] || book.status}
             </span>
-          )}
-        </div>
-
-        {book.status === "synthesizing" && total > 0 && (
-          <div style={styles.progressTrack}>
-            <div style={{ ...styles.progressBar, width: `${progress * 100}%` }} />
+            {book.status === "synthesizing" && total > 0 && (
+              <span style={styles.count}>{readySegments}/{total}</span>
+            )}
+            {book.status === "error" && total > 0 && (
+              <span style={{ ...styles.count, color: "var(--danger)" }}>
+                {failedSegments}/{total} failed
+              </span>
+            )}
           </div>
-        )}
 
-        {retryError && (
-          <p style={styles.errorMsg}>{retryError}</p>
-        )}
+          {book.status === "synthesizing" && total > 0 && (
+            <div style={styles.progressTrack}>
+              <div style={{ ...styles.progressBar, width: `${progress * 100}%` }} />
+            </div>
+          )}
 
-        <div style={styles.actions}>
-          {canPlay && (
-            <button style={styles.playBtn} onClick={() => onPlay(book)}>
-              {isPlaying ? "Playing" : "Play"}
-            </button>
-          )}
-          {book.status === "error" && (
-            <button style={styles.retryBtn} onClick={handleRetry}>Retry</button>
-          )}
-          <button style={styles.deleteBtn} onClick={handleDelete}>✕</button>
+          {retryError && <p style={styles.errorMsg}>{retryError}</p>}
+
+          <div style={styles.actions}>
+            {canPlay && (
+              <button style={styles.playBtn} onClick={() => onPlay(book)}>
+                {isPlaying ? "Playing" : "Play"}
+              </button>
+            )}
+            {book.status === "error" && (
+              <button style={styles.retryBtn} onClick={handleRetry}>Retry</button>
+            )}
+            <button style={styles.iconBtn} onClick={() => setShowEdit(true)} title="Edit">✏</button>
+            <button style={styles.deleteBtn} onClick={handleDelete} title="Delete">✕</button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {showEdit && (
+        <EditModal
+          book={book}
+          onClose={() => setShowEdit(false)}
+          onSaved={onUpdated}
+        />
+      )}
+    </>
   );
 }
 
@@ -103,10 +126,11 @@ const styles = {
     transition: "outline 0.15s",
   },
   cover: {
-    height: 120,
+    height: 110,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   playingDot: {
     fontSize: 28,
@@ -116,7 +140,7 @@ const styles = {
     padding: "12px 14px",
     display: "flex",
     flexDirection: "column",
-    gap: 4,
+    gap: 3,
     flex: 1,
   },
   title: {
@@ -132,6 +156,27 @@ const styles = {
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
+  },
+  genre: {
+    display: "inline-block",
+    fontSize: 10,
+    fontWeight: 500,
+    background: "var(--surface2)",
+    border: "1px solid var(--border)",
+    color: "var(--text-muted)",
+    borderRadius: 4,
+    padding: "2px 6px",
+    alignSelf: "flex-start",
+    marginTop: 1,
+  },
+  notes: {
+    fontSize: 11,
+    color: "var(--text-muted)",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    fontStyle: "italic",
+    marginTop: 1,
   },
   statusRow: {
     display: "flex",
@@ -158,9 +203,15 @@ const styles = {
     background: "var(--accent)",
     transition: "width 0.5s ease",
   },
+  errorMsg: {
+    fontSize: 11,
+    color: "var(--danger)",
+    marginTop: 2,
+    wordBreak: "break-word",
+  },
   actions: {
     display: "flex",
-    gap: 6,
+    gap: 5,
     marginTop: 8,
     alignItems: "center",
   },
@@ -180,18 +231,21 @@ const styles = {
     padding: "5px 10px",
     fontSize: 12,
   },
-  deleteBtn: {
+  iconBtn: {
     marginLeft: "auto",
     background: "transparent",
     color: "var(--text-muted)",
     fontSize: 13,
     padding: "4px 6px",
     borderRadius: 4,
+    border: "none",
   },
-  errorMsg: {
-    fontSize: 11,
-    color: "var(--danger)",
-    marginTop: 2,
-    wordBreak: "break-word",
+  deleteBtn: {
+    background: "transparent",
+    color: "var(--text-muted)",
+    fontSize: 13,
+    padding: "4px 6px",
+    borderRadius: 4,
+    border: "none",
   },
 };

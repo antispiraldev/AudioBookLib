@@ -24,6 +24,16 @@ export async function deleteBook(id) {
   if (!r.ok) throw new Error(await parseError(r));
 }
 
+export async function updateBook(id, data) {
+  const r = await fetch(`${BASE}/books/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
 export async function retryBook(id) {
   const r = await fetch(`${BASE}/books/${id}/synthesize`, { method: "POST" });
   if (!r.ok) throw new Error(await parseError(r));
