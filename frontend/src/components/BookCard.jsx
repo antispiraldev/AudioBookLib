@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { deleteBook, retryBook } from "../api";
 
 const PALETTE = [
@@ -18,7 +19,9 @@ const STATUS_LABEL = {
 };
 
 export default function BookCard({ book, isPlaying, onPlay, onDeleted, onRetried }) {
+  const [retryError, setRetryError] = useState("");
   const readySegments = book.segments.filter((s) => s.status === "ready").length;
+  const failedSegments = book.segments.filter((s) => s.status === "error").length;
   const total = book.segments.length;
   const progress = total > 0 ? readySegments / total : 0;
   const canPlay = book.status === "complete" || (book.status === "synthesizing" && readySegments > 0);
@@ -30,8 +33,13 @@ export default function BookCard({ book, isPlaying, onPlay, onDeleted, onRetried
   }
 
   async function handleRetry() {
-    const updated = await retryBook(book.id);
-    onRetried(updated);
+    setRetryError("");
+    try {
+      const updated = await retryBook(book.id);
+      onRetried(updated);
+    } catch (e) {
+      setRetryError(e.message);
+    }
   }
 
   return (
@@ -51,12 +59,21 @@ export default function BookCard({ book, isPlaying, onPlay, onDeleted, onRetried
           {book.status === "synthesizing" && total > 0 && (
             <span style={styles.count}>{readySegments}/{total}</span>
           )}
+          {book.status === "error" && total > 0 && (
+            <span style={{ ...styles.count, color: "var(--danger)" }}>
+              {failedSegments} of {total} segments failed
+            </span>
+          )}
         </div>
 
         {book.status === "synthesizing" && total > 0 && (
           <div style={styles.progressTrack}>
             <div style={{ ...styles.progressBar, width: `${progress * 100}%` }} />
           </div>
+        )}
+
+        {retryError && (
+          <p style={styles.errorMsg}>{retryError}</p>
         )}
 
         <div style={styles.actions}>
@@ -170,5 +187,11 @@ const styles = {
     fontSize: 13,
     padding: "4px 6px",
     borderRadius: 4,
+  },
+  errorMsg: {
+    fontSize: 11,
+    color: "var(--danger)",
+    marginTop: 2,
+    wordBreak: "break-word",
   },
 };
