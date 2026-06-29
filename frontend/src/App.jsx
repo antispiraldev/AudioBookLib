@@ -121,8 +121,8 @@ const styles = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-    gap: 16,
+    gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+    gap: 20,
     padding: 24,
   },
   empty: {

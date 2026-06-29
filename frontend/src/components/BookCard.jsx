@@ -126,7 +126,7 @@ const styles = {
     transition: "outline 0.15s",
   },
   cover: {
-    height: 110,
+    height: 140,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -137,7 +137,7 @@ const styles = {
     color: "rgba(255,255,255,0.9)",
   },
   body: {
-    padding: "12px 14px",
+    padding: "14px 16px",
     display: "flex",
     flexDirection: "column",
     gap: 3,
@@ -172,11 +172,9 @@ const styles = {
   notes: {
     fontSize: 11,
     color: "var(--text-muted)",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
     fontStyle: "italic",
     marginTop: 1,
+    lineHeight: 1.4,
   },
   statusRow: {
     display: "flex",
