@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { updateBook } from "../api";
+import { updateBook, suggestBook } from "../api";
 
 export default function EditModal({ book, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -10,10 +10,30 @@ export default function EditModal({ book, onClose, onSaved }) {
     notes: book.notes ?? "",
   });
   const [loading, setLoading] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState("");
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  async function handleSuggest() {
+    setSuggesting(true);
+    setError("");
+    try {
+      const s = await suggestBook(book.id);
+      setForm((f) => ({
+        title: s.title ?? f.title,
+        author: s.author ?? f.author,
+        genre: s.genre ?? f.genre,
+        year: s.year != null ? String(s.year) : f.year,
+        notes: s.notes ?? f.notes,
+      }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSuggesting(false);
+    }
   }
 
   async function handleSubmit(e) {
@@ -42,7 +62,17 @@ export default function EditModal({ book, onClose, onSaved }) {
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h2 style={styles.heading}>Edit Book</h2>
+        <div style={styles.headingRow}>
+          <h2 style={styles.heading}>Edit Book</h2>
+          <button
+            type="button"
+            style={{ ...styles.suggestBtn, opacity: suggesting ? 0.6 : 1 }}
+            disabled={suggesting}
+            onClick={handleSuggest}
+          >
+            {suggesting ? "Suggesting…" : "✦ Suggest"}
+          </button>
+        </div>
         <form onSubmit={handleSubmit} style={styles.form}>
           <label style={styles.label}>Title</label>
           <input
@@ -137,10 +167,26 @@ const styles = {
     width: 440,
     maxWidth: "90vw",
   },
+  headingRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
   heading: {
     fontSize: 18,
     fontWeight: 600,
-    marginBottom: 20,
+  },
+  suggestBtn: {
+    background: "var(--surface2)",
+    border: "1px solid var(--border)",
+    color: "var(--accent)",
+    borderRadius: 6,
+    padding: "6px 12px",
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: "pointer",
+    transition: "opacity 0.2s",
   },
   form: {
     display: "flex",

@@ -7,8 +7,9 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Book
+from ..models import Book, Segment
 from ..schemas import BookOut, BookUpdate
+from ..services.suggest import suggest_metadata
 from ..tasks import ingest_and_synthesize, synthesize_book
 
 log = logging.getLogger(__name__)
@@ -66,6 +67,25 @@ def update_book(book_id: int, data: BookUpdate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(book)
     return book
+
+
+@router.get("/{book_id}/suggest")
+def suggest_book_metadata(book_id: int, db: Session = Depends(get_db)):
+    book = db.get(Book, book_id)
+    if not book:
+        raise HTTPException(404, "Book not found")
+    first_segment = (
+        db.query(Segment)
+        .filter(Segment.book_id == book_id)
+        .order_by(Segment.order)
+        .first()
+    )
+    excerpt = first_segment.text if first_segment else ""
+    try:
+        return suggest_metadata(book.pdf_path, book.title, excerpt)
+    except Exception as e:
+        log.exception("suggest_metadata failed for book %d", book_id)
+        raise HTTPException(502, f"Suggestion failed: {e}")
 
 
 @router.post("/{book_id}/synthesize", response_model=BookOut)

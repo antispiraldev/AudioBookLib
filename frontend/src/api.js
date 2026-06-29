@@ -34,6 +34,12 @@ export async function updateBook(id, data) {
   return r.json();
 }
 
+export async function suggestBook(id) {
+  const r = await fetch(`${BASE}/books/${id}/suggest`);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
 export async function retryBook(id) {
   const r = await fetch(`${BASE}/books/${id}/synthesize`, { method: "POST" });
   if (!r.ok) throw new Error(await parseError(r));
