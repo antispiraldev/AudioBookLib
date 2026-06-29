@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { audioUrl } from "../api";
 
+const SKIP = 15;
+
 export default function AudioPlayer({ book, onClose }) {
   const audioRef = useRef(null);
+  const pillsRef = useRef(null);
   const [segIdx, setSegIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -19,6 +22,9 @@ export default function AudioPlayer({ book, onClose }) {
     if (!seg || !audioRef.current) return;
     audioRef.current.src = audioUrl(seg.id);
     if (playing) audioRef.current.play().catch(() => {});
+    // Scroll active pill into view
+    const pill = pillsRef.current?.querySelector(`[data-idx="${segIdx}"]`);
+    pill?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   }, [seg?.id]);
 
   useEffect(() => {
@@ -40,11 +46,28 @@ export default function AudioPlayer({ book, onClose }) {
     if (el && el.duration) setProgress(el.currentTime / el.duration);
   }
 
-  function seek(e) {
+  function seekBar(e) {
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = (e.clientX - rect.left) / rect.width;
-    if (audioRef.current && audioRef.current.duration) {
+    if (audioRef.current?.duration) {
       audioRef.current.currentTime = ratio * audioRef.current.duration;
+    }
+  }
+
+  function skipBack() {
+    const el = audioRef.current;
+    if (!el) return;
+    el.currentTime = Math.max(0, el.currentTime - SKIP);
+  }
+
+  function skipForward() {
+    const el = audioRef.current;
+    if (!el || !isFinite(el.duration)) return;
+    const newTime = el.currentTime + SKIP;
+    if (newTime >= el.duration) {
+      if (segIdx < readySegs.length - 1) setSegIdx((i) => i + 1);
+    } else {
+      el.currentTime = newTime;
     }
   }
 
@@ -62,18 +85,42 @@ export default function AudioPlayer({ book, onClose }) {
         onPause={() => setPlaying(false)}
       />
 
+      {/* Segment pills */}
+      <div ref={pillsRef} style={styles.pills}>
+        {readySegs.map((s, i) => (
+          <button
+            key={s.id}
+            data-idx={i}
+            style={{
+              ...styles.pill,
+              background: i === segIdx ? "var(--accent)" : "var(--surface2)",
+              color: i === segIdx ? "#fff" : "var(--text-muted)",
+              border: i === segIdx ? "1px solid var(--accent)" : "1px solid var(--border)",
+            }}
+            onClick={() => setSegIdx(i)}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+
+      {/* Info */}
       <div style={styles.info}>
         <p style={styles.title}>{book.title}</p>
         <p style={styles.sub}>
-          {book.author ? `${book.author} · ` : ""}Segment {segIdx + 1} / {readySegs.length}
+          {book.author ? `${book.author} · ` : ""}
+          {segIdx + 1} / {readySegs.length}
         </p>
       </div>
 
+      {/* Controls */}
       <div style={styles.controls}>
+        <button style={styles.btn} onClick={skipBack} title="-15s">−15s</button>
         <button
           style={styles.btn}
           onClick={() => setSegIdx((i) => Math.max(0, i - 1))}
           disabled={segIdx === 0}
+          title="Previous segment"
         >
           ◀◀
         </button>
@@ -87,16 +134,19 @@ export default function AudioPlayer({ book, onClose }) {
           style={styles.btn}
           onClick={() => setSegIdx((i) => Math.min(readySegs.length - 1, i + 1))}
           disabled={segIdx >= readySegs.length - 1}
+          title="Next segment"
         >
           ▶▶
         </button>
+        <button style={styles.btn} onClick={skipForward} title="+15s">+15s</button>
       </div>
 
+      {/* Progress */}
       <div style={styles.progressWrapper}>
-        <div style={styles.progressTrack} onClick={seek}>
+        <div style={styles.progressTrack} onClick={seekBar} title="Seek">
           <div style={{ ...styles.progressFill, width: `${progress * 100}%` }} />
         </div>
-        <div style={styles.progressTrack}>
+        <div style={styles.progressTrack} title="Overall progress">
           <div style={{ ...styles.overallFill, width: `${overallProgress * 100}%` }} />
         </div>
       </div>
@@ -116,13 +166,33 @@ const styles = {
     borderTop: "1px solid var(--border)",
     display: "flex",
     alignItems: "center",
-    gap: 16,
-    padding: "12px 20px",
+    gap: 12,
+    padding: "10px 20px",
     zIndex: 50,
+  },
+  pills: {
+    display: "flex",
+    gap: 4,
+    overflowX: "auto",
+    maxWidth: 200,
+    scrollbarWidth: "none",
+    flexShrink: 0,
+    padding: "2px 0",
+  },
+  pill: {
+    flexShrink: 0,
+    width: 28,
+    height: 24,
+    borderRadius: 4,
+    fontSize: 11,
+    fontWeight: 500,
+    cursor: "pointer",
+    transition: "background 0.15s, color 0.15s",
+    lineHeight: 1,
   },
   info: {
     minWidth: 0,
-    flex: "0 0 220px",
+    flex: "0 0 160px",
   },
   title: {
     fontSize: 13,
@@ -139,16 +209,18 @@ const styles = {
   controls: {
     display: "flex",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
+    flexShrink: 0,
   },
   btn: {
     background: "transparent",
     color: "var(--text)",
-    fontSize: 13,
-    padding: "6px 10px",
+    fontSize: 12,
+    padding: "6px 9px",
     borderRadius: 5,
     border: "1px solid var(--border)",
     lineHeight: 1,
+    whiteSpace: "nowrap",
   },
   playPause: {
     fontSize: 16,
@@ -164,6 +236,7 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: 5,
+    minWidth: 0,
   },
   progressTrack: {
     height: 4,
@@ -189,5 +262,6 @@ const styles = {
     padding: "4px 8px",
     borderRadius: 4,
     border: "none",
+    flexShrink: 0,
   },
 };
