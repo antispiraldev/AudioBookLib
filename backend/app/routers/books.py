@@ -1,9 +1,12 @@
+import logging
 import os
 import shutil
 from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
+
+log = logging.getLogger(__name__)
 
 from ..database import SessionLocal, get_db
 from ..models import Book, Segment
@@ -96,6 +99,7 @@ def _ingest_and_synthesize(book_id: int) -> None:
             db.add(Segment(book_id=book_id, order=i, text=text))
         db.commit()
     except Exception:
+        log.exception("Text extraction failed for book %s", book_id)
         _set_error(db, book_id)
         db.close()
         return
@@ -109,10 +113,16 @@ def _synthesize_book(book_id: int) -> None:
     db = SessionLocal()
     try:
         book = db.get(Book, book_id)
+        if not book:
+            return
         book.status = "synthesizing"
         db.commit()
 
         for seg in db.query(Segment).filter_by(book_id=book_id).order_by(Segment.order).all():
+            db.expire(seg)
+            db.expire(book)
+            if not db.get(Book, book_id):
+                return
             if seg.status == "ready":
                 continue
             audio_path = os.path.join(STORAGE_AUDIO, str(book_id), f"{seg.order:04d}.mp3")
@@ -123,13 +133,18 @@ def _synthesize_book(book_id: int) -> None:
                 seg.audio_path = audio_path
                 seg.status = "ready"
             except Exception:
+                log.exception("TTS failed for segment %s (book %s)", seg.order, book_id)
                 seg.status = "error"
             db.commit()
 
+        book = db.get(Book, book_id)
+        if not book:
+            return
         segments = db.query(Segment).filter_by(book_id=book_id).all()
         book.status = "complete" if all(s.status == "ready" for s in segments) else "error"
         db.commit()
     except Exception:
+        log.exception("Synthesis failed for book %s", book_id)
         _set_error(db, book_id)
     finally:
         db.close()
