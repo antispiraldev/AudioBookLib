@@ -8,6 +8,7 @@ from .database import SessionLocal
 from .models import Book, Segment
 from .services.pdf import extract_text_chunks
 from .services.tts import synthesize
+from .services import storage
 
 log = logging.getLogger(__name__)
 
@@ -94,12 +95,20 @@ def synthesize_segment(segment_id: int, book_id: int) -> str:
         if seg.status == "ready":
             return "ready"
 
-        audio_path = os.path.join(STORAGE_AUDIO, str(book_id), f"{seg.order:04d}.mp3")
+        local_path = os.path.join(STORAGE_AUDIO, str(book_id), f"{seg.order:04d}.mp3")
         seg.status = "processing"
         db.commit()
 
-        synthesize(seg.text, audio_path)
-        seg.audio_path = audio_path
+        synthesize(seg.text, local_path)
+
+        if storage.is_enabled():
+            key = f"audio/{book_id}/{seg.order:04d}.mp3"
+            storage.upload(local_path, key)
+            os.remove(local_path)
+            seg.audio_path = key
+        else:
+            seg.audio_path = local_path
+
         seg.status = "ready"
         db.commit()
         return "ready"

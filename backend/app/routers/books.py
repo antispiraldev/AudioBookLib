@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Book, Segment
 from ..schemas import BookOut, BookUpdate
+from ..services import storage
 from ..services.suggest import suggest_metadata
 from ..tasks import ingest_and_synthesize, synthesize_book
 
@@ -102,6 +103,7 @@ def delete_book(book_id: int, db: Session = Depends(get_db)):
     book = db.get(Book, book_id)
     if not book:
         raise HTTPException(404, "Book not found")
+    storage.delete_prefix(f"audio/{book_id}/")
     db.delete(book)
     db.commit()
     return {"ok": True}

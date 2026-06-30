@@ -18,7 +18,7 @@ flowchart TD
         Ingest -->|"Celery group"| Synth
 
         subgraph Parallel ["Parallel segment tasks (up to 5)"]
-            Synth["synthesize_segment × N\n─────────────\nOpenAI tts-1-hd\nvoice: alloy\n→ MP3 saved to storage/audio/"]
+            Synth["synthesize_segment × N\n─────────────\nOpenAI tts-1-hd\nvoice: alloy\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
         end
 
         Synth -->|"chord callback"| Finalize
@@ -29,7 +29,9 @@ flowchart TD
 
     DB -->|"poll every 3s"| Frontend
     Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nEdit modal + Suggest"]
-    Frontend -->|"GET /api/audio/{id}\nHTTP 206 Partial Content\n(range requests)"| Player["Audio Player\n─────────────\nSegment pills\n±15s skip\nOverall progress"]
+    Frontend -->|"GET /api/audio/{id}\n→ 302 to signed R2 URL\n(1 hr expiry)"| R2
+    R2["Cloudflare R2\n─────────────\nPrivate bucket\nSigned URLs\nNo egress fees"]
+    R2 -->|"Audio stream\n(range requests)"| Player["Audio Player\n─────────────\nSegment pills\n±15s skip\nOverall progress"]
 ```
 
 ## Status flow
@@ -44,10 +46,25 @@ Segment: pending → processing → ready
 
 ## Services
 
-| Service  | Role                        |
-|----------|-----------------------------|
-| FastAPI  | REST API, file storage      |
-| Celery   | Background task execution   |
-| Redis    | Broker + result backend     |
-| SQLite   | Persistent state            |
-| OpenAI   | TTS (`tts-1-hd`) + metadata suggestions (`gpt-4o-mini`) |
+| Service         | Role                                              |
+|-----------------|---------------------------------------------------|
+| FastAPI         | REST API, file storage                            |
+| Celery          | Background task execution                         |
+| Redis           | Broker + result backend                           |
+| SQLite          | Persistent metadata                               |
+| Cloudflare R2   | MP3 storage (private bucket, signed URLs)         |
+| OpenAI tts-1-hd | Audio synthesis                                   |
+| OpenAI gpt-4o-mini | Metadata suggestions                           |
+
+## Hosting
+
+| Component  | Provider        | Notes                              |
+|------------|-----------------|------------------------------------|
+| App server | Hetzner VPS     | FastAPI + Celery + Redis + frontend|
+| Storage    | Cloudflare R2   | PDFs (local) + MP3s (R2)           |
+| CDN / SSL  | Cloudflare      | DNS proxy, free SSL                |
+
+## Fallback (local dev)
+
+If `R2_ACCOUNT_ID` is not set, audio is served from the local filesystem
+with range-request streaming. No code changes needed to switch modes.

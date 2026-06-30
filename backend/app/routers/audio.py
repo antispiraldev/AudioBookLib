@@ -1,10 +1,11 @@
 import os
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Segment
+from ..services import storage
 
 router = APIRouter()
 
@@ -17,6 +18,11 @@ def stream_audio(segment_id: int, request: Request, db: Session = Depends(get_db
     if not seg or not seg.audio_path:
         raise HTTPException(404, "Audio not ready")
 
+    if storage.is_enabled():
+        url = storage.presigned_url(seg.audio_path, expiry=3600)
+        return RedirectResponse(url, status_code=302)
+
+    # Local fallback — range-request-aware streaming
     path = seg.audio_path
     file_size = os.path.getsize(path)
     range_header = request.headers.get("range")
@@ -27,7 +33,6 @@ def stream_audio(segment_id: int, request: Request, db: Session = Depends(get_db
     }
 
     if range_header:
-        # Parse "bytes=start-end"
         byte_range = range_header.replace("bytes=", "").split("-")
         start = int(byte_range[0])
         end = int(byte_range[1]) if byte_range[1] else file_size - 1
@@ -49,7 +54,6 @@ def stream_audio(segment_id: int, request: Request, db: Session = Depends(get_db
         headers["Content-Length"] = str(length)
         return StreamingResponse(iter_file(), status_code=206, headers=headers)
 
-    # Full file
     def iter_full():
         with open(path, "rb") as f:
             while chunk := f.read(CHUNK):

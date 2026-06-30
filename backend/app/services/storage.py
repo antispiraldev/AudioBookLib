@@ -1,0 +1,57 @@
+import os
+import boto3
+from botocore.config import Config
+
+_client = None
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        account_id = os.getenv("R2_ACCOUNT_ID")
+        if not account_id:
+            return None
+        _client = boto3.client(
+            "s3",
+            endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+            aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID"),
+            aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY"),
+            config=Config(signature_version="s3v4"),
+            region_name="auto",
+        )
+    return _client
+
+
+def _bucket() -> str:
+    return os.getenv("R2_BUCKET_NAME", "audiobooklib")
+
+
+def is_enabled() -> bool:
+    return bool(os.getenv("R2_ACCOUNT_ID"))
+
+
+def upload(local_path: str, key: str) -> None:
+    client = _get_client()
+    if client:
+        client.upload_file(local_path, _bucket(), key)
+
+
+def presigned_url(key: str, expiry: int = 3600) -> str:
+    client = _get_client()
+    if not client:
+        raise RuntimeError("R2 not configured")
+    return client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": _bucket(), "Key": key},
+        ExpiresIn=expiry,
+    )
+
+
+def delete_prefix(prefix: str) -> None:
+    client = _get_client()
+    if not client:
+        return
+    paginator = client.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=_bucket(), Prefix=prefix):
+        for obj in page.get("Contents", []):
+            client.delete_object(Bucket=_bucket(), Key=obj["Key"])
