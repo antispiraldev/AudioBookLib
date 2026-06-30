@@ -51,13 +51,19 @@ def ingest_and_synthesize(book_id: int) -> None:
 
 @celery.task
 def synthesize_book(book_id: int) -> None:
-    """Retry: re-synthesize all non-ready segments in parallel."""
+    """Retry: reset stuck/errored segments and re-synthesize in parallel."""
     db = SessionLocal()
     try:
         book = db.get(Book, book_id)
         if not book:
             return
         book.status = "synthesizing"
+        # Reset processing segments so the new chord owns them cleanly
+        stuck = db.query(Segment).filter(
+            Segment.book_id == book_id, Segment.status == "processing"
+        ).all()
+        for seg in stuck:
+            seg.status = "pending"
         db.commit()
         segment_ids = [
             seg.id for seg in

@@ -28,6 +28,7 @@ export default function BookCard({ book, isPlaying, onPlay, onDeleted, onUpdated
   const total = book.segments.length;
   const progress = total > 0 ? readySegments / total : 0;
   const canPlay = book.status === "complete" || (book.status === "synthesizing" && readySegments > 0);
+  const isStuck = book.status === "synthesizing" && failedSegments > 0;
 
   async function handleDelete() {
     if (!confirm(`Delete "${book.title}"?`)) return;
@@ -97,6 +98,9 @@ export default function BookCard({ book, isPlaying, onPlay, onDeleted, onUpdated
             )}
             {book.status === "error" && (
               <button style={styles.retryBtn} onClick={handleRetry}>Retry</button>
+            )}
+            {isStuck && (
+              <button style={styles.retryBtn} onClick={handleRetry}>Refresh</button>
             )}
             <button style={styles.iconBtn} onClick={() => setShowEdit(true)} title="Edit">✏</button>
             <button style={styles.deleteBtn} onClick={handleDelete} title="Delete">✕</button>
