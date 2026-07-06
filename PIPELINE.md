@@ -60,7 +60,7 @@ Segment: pending → processing → ready
 
 | Component  | Provider        | Notes                              |
 |------------|-----------------|------------------------------------|
-| App server | Hetzner VPS     | FastAPI + Celery + Redis + frontend|
+| App server | DigitalOcean droplet | FastAPI + Celery + Redis + nginx (port 80) |
 | Storage    | Cloudflare R2   | PDFs (local) + MP3s (R2)           |
 | CDN / SSL  | Cloudflare      | DNS proxy, free SSL                |
 
