@@ -32,7 +32,7 @@ class Segment(Base):
     __tablename__ = "segments"
 
     id = Column(Integer, primary_key=True, index=True)
-    book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
+    book_id = Column(Integer, ForeignKey("books.id"), nullable=False, index=True)
     order = Column(Integer, nullable=False)
     text = Column(Text, nullable=False)
     audio_path = Column(String, nullable=True)

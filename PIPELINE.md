@@ -4,7 +4,7 @@
 flowchart TD
     Upload["User: Upload PDF\n(title, author)"]
     API["FastAPI\nPOST /api/books/"]
-    DB[("SQLite\nBook + Segments")]
+    DB[("PostgreSQL\nBook + Segments")]
     Queue["Redis\nTask Queue"]
 
     Upload -->|multipart/form-data| API
@@ -51,7 +51,7 @@ Segment: pending → processing → ready
 | FastAPI         | REST API, file storage                            |
 | Celery          | Background task execution                         |
 | Redis           | Broker + result backend                           |
-| SQLite          | Persistent metadata                               |
+| PostgreSQL      | Persistent metadata (Alembic migrations)          |
 | Cloudflare R2   | MP3 storage (private bucket, signed URLs)         |
 | OpenAI tts-1-hd | Audio synthesis                                   |
 | OpenAI gpt-4o-mini | Metadata suggestions                           |
@@ -61,10 +61,12 @@ Segment: pending → processing → ready
 | Component  | Provider        | Notes                              |
 |------------|-----------------|------------------------------------|
 | App server | DigitalOcean droplet | FastAPI + Celery + Redis + nginx (port 80) |
-| Storage    | Cloudflare R2   | PDFs (local) + MP3s (R2)           |
+| Storage    | Cloudflare R2   | PDFs + MP3s                        |
 | CDN / SSL  | Cloudflare      | DNS proxy, free SSL                |
 
 ## Fallback (local dev)
 
-If `R2_ACCOUNT_ID` is not set, audio is served from the local filesystem
-with range-request streaming. No code changes needed to switch modes.
+If `R2_ACCOUNT_ID` is not set, audio and PDFs are stored on the local
+filesystem, with range-request streaming for audio. If `DATABASE_URL` is
+not set, SQLite is used instead of PostgreSQL. No code changes needed to
+switch modes.

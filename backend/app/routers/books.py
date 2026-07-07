@@ -54,6 +54,14 @@ async def upload_book(
     db.commit()
     db.refresh(book)
 
+    if storage.is_enabled():
+        key = f"pdfs/{book.id}/{file.filename}"
+        storage.upload(pdf_path, key)
+        os.remove(pdf_path)
+        book.pdf_path = key
+        db.commit()
+        db.refresh(book)
+
     ingest_and_synthesize.delay(book.id)
     return book
 
@@ -83,7 +91,8 @@ def suggest_book_metadata(book_id: int, db: Session = Depends(get_db)):
     )
     excerpt = first_segment.text if first_segment else ""
     try:
-        return suggest_metadata(book.pdf_path, book.title, excerpt)
+        with storage.local_pdf(book.pdf_path) as pdf_path:
+            return suggest_metadata(pdf_path, book.title, excerpt)
     except Exception as e:
         log.exception("suggest_metadata failed for book %d", book_id)
         raise HTTPException(502, f"Suggestion failed: {e}")
@@ -104,6 +113,9 @@ def delete_book(book_id: int, db: Session = Depends(get_db)):
     if not book:
         raise HTTPException(404, "Book not found")
     storage.delete_prefix(f"audio/{book_id}/")
+    storage.delete_prefix(f"pdfs/{book_id}/")
+    if book.pdf_path.startswith("storage/") and os.path.exists(book.pdf_path):
+        os.remove(book.pdf_path)
     db.delete(book)
     db.commit()
     return {"ok": True}

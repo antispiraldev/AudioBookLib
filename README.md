@@ -19,7 +19,7 @@ Live at [voxshelf.io](https://voxshelf.io)
 
 | Layer    | Technology                          |
 |----------|-------------------------------------|
-| Backend  | FastAPI + SQLAlchemy + SQLite        |
+| Backend  | FastAPI + SQLAlchemy + PostgreSQL (Alembic) |
 | Tasks    | Celery + Redis                      |
 | Frontend | React + Vite                        |
 | TTS      | OpenAI tts-1-hd                     |
@@ -44,6 +44,7 @@ R2 storage is optional. If `R2_ACCOUNT_ID` is not set, audio is served from the 
 | Variable              | Required | Description                        |
 |-----------------------|----------|------------------------------------|
 | `OPENAI_API_KEY`      | Yes      | OpenAI API key                     |
+| `POSTGRES_PASSWORD`   | Yes*     | Postgres password (*in Docker; bare local dev falls back to SQLite) |
 | `R2_ACCOUNT_ID`       | No       | Cloudflare account ID              |
 | `R2_ACCESS_KEY_ID`    | No       | R2 S3-compatible access key        |
 | `R2_SECRET_ACCESS_KEY`| No       | R2 S3-compatible secret key        |

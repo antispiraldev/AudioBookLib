@@ -1,4 +1,7 @@
 import os
+import tempfile
+from contextlib import contextmanager
+
 import boto3
 from botocore.config import Config
 
@@ -34,6 +37,33 @@ def upload(local_path: str, key: str) -> None:
     client = _get_client()
     if client:
         client.upload_file(local_path, _bucket(), key)
+
+
+def download(key: str, local_path: str) -> None:
+    client = _get_client()
+    if not client:
+        raise RuntimeError("R2 not configured")
+    client.download_file(_bucket(), key, local_path)
+
+
+def is_r2_key(path: str) -> bool:
+    """R2 keys have no storage/ prefix — local paths always do."""
+    return is_enabled() and not path.startswith("storage/")
+
+
+@contextmanager
+def local_pdf(path: str):
+    """Yield a readable local path for a pdf_path that may be an R2 key."""
+    if not is_r2_key(path):
+        yield path
+        return
+    tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+    tmp.close()
+    try:
+        download(path, tmp.name)
+        yield tmp.name
+    finally:
+        os.remove(tmp.name)
 
 
 def presigned_url(key: str, expiry: int = 3600) -> str:

@@ -25,7 +25,8 @@ def ingest_and_synthesize(book_id: int) -> None:
         book.status = "processing"
         db.commit()
 
-        page_count, chunks = extract_text_chunks(book.pdf_path)
+        with storage.local_pdf(book.pdf_path) as pdf_path:
+            page_count, chunks = extract_text_chunks(pdf_path)
         book.page_count = page_count
         for i, text in enumerate(chunks):
             db.add(Segment(book_id=book_id, order=i, text=text))
