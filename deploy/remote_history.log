@@ -1,0 +1,9 @@
+2026-07-08 17:38:40 UTC | exit 255 | hostname && uptime && cd /opt/voxshelf/AudioBookLib && git log --oneline -1
+2026-07-08 17:52:13 UTC | exit 0 | hostname && uptime && cd /opt/voxshelf/AudioBookLib && git log --oneline -1
+2026-07-08 17:52:27 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T backend python -c "
+from app.tasks import synthesize_book
+for i in [24, 23, 22, 21, 20, 15, 14, 13, 12, 11, 10, 4]:
+    synthesize_book.delay(i)
+print(\"queued 12 books\")
+"
+2026-07-08 17:58:04 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose logs --tail 5 worker 2>/dev/null | grep -oE "Task app.tasks.[a-z_]+\[[^]]*\] (received|succeeded)" | tail -5
