@@ -84,7 +84,7 @@ export default function App() {
   return (
     <div style={{ paddingBottom: activeBook ? 90 : 0 }}>
       <header style={styles.header}>
-        <h1 style={styles.logo}>VoxShelf</h1>
+        <h1 style={styles.logo}>Aedo</h1>
         <div style={styles.headerRight}>
           {isAdmin && (
             <button style={styles.addBtn} onClick={() => setShowUpload(true)}>
