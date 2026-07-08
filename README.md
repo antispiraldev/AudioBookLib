@@ -1,10 +1,10 @@
-# VoxShelf
+# Aedo
 
 A personal audiobook library that converts PDFs into high-quality text-to-speech audio.
 
-Upload a PDF, and VoxShelf parses it with structure-aware extraction, synthesizes it in parallel segments using OpenAI TTS, and streams it back with a chapter-aware audio player.
+Upload a PDF, and Aedo parses it with structure-aware extraction, synthesizes it in parallel segments using OpenAI TTS, and streams it back with a chapter-aware audio player.
 
-Live at [voxshelf.io](https://voxshelf.io)
+Live at [aedo.io](https://aedo.io)
 
 ## Features
 
@@ -53,5 +53,5 @@ R2 storage is optional. If `R2_ACCOUNT_ID` is not set, audio is served from the 
 | `GOOGLE_CLIENT_SECRET`| No       | Google OAuth client secret         |
 | `SESSION_SECRET`      | With auth| Cookie signing key (`openssl rand -hex 32`) |
 | `ADMIN_EMAIL`         | With auth| This Google account becomes admin on sign-in |
-| `PUBLIC_BASE_URL`     | With auth| Origin used for the OAuth redirect (e.g. `https://voxshelf.io`) |
+| `PUBLIC_BASE_URL`     | With auth| Origin used for the OAuth redirect (e.g. `https://aedo.io`) |
 | `ALLOWED_EMAILS`      | No       | Comma-separated sign-in allowlist; empty = open |
