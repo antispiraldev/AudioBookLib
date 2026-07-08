@@ -7,3 +7,11 @@ for i in [24, 23, 22, 21, 20, 15, 14, 13, 12, 11, 10, 4]:
 print(\"queued 12 books\")
 "
 2026-07-08 17:58:04 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose logs --tail 5 worker 2>/dev/null | grep -oE "Task app.tasks.[a-z_]+\[[^]]*\] (received|succeeded)" | tail -5
+2026-07-08 18:03:01 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose logs --tail 100 worker 2>/dev/null | grep -A 6 -E "TTS failed|Text extraction failed|ERROR" | tail -40
+2026-07-08 18:03:09 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose logs --tail 100 worker 2>/dev/null | grep -B 1 -E "openai|Error|error" | grep -vE "TTS failed|Traceback|File \"|\^" | tail -10
+2026-07-08 18:08:43 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T backend python -c "
+from app.tasks import synthesize_book
+for i in [24, 23, 22, 21, 20, 15, 14, 13, 12, 11, 10, 4]:
+    synthesize_book.delay(i)
+print(\"queued 12 books\")
+"
