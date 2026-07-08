@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { fetchBooks } from "./api";
 import BookCard from "./components/BookCard";
 import UploadModal from "./components/UploadModal";
 import AudioPlayer from "./components/AudioPlayer";
+import FilterBar from "./components/FilterBar";
 
 const ACTIVE_STATUSES = new Set(["pending", "processing", "synthesizing"]);
 
@@ -10,6 +11,20 @@ export default function App() {
   const [books, setBooks] = useState([]);
   const [showUpload, setShowUpload] = useState(false);
   const [activeBook, setActiveBook] = useState(null);
+  const [genre, setGenre] = useState(null);
+  const [query, setQuery] = useState("");
+
+  const visibleBooks = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return books.filter((b) => {
+      if (genre && (b.genre || "Uncategorized") !== genre) return false;
+      if (!q) return true;
+      return (
+        b.title.toLowerCase().includes(q) ||
+        (b.author || "").toLowerCase().includes(q)
+      );
+    });
+  }, [books, genre, query]);
 
   const loadBooks = useCallback(async () => {
     try {
@@ -66,18 +81,33 @@ export default function App() {
           </button>
         </div>
       ) : (
-        <div style={styles.grid}>
-          {books.map((book) => (
-            <BookCard
-              key={book.id}
-              book={book}
-              isPlaying={activeBook?.id === book.id}
-              onPlay={setActiveBook}
-              onDeleted={handleDeleted}
-              onUpdated={handleUpdated}
-            />
-          ))}
-        </div>
+        <>
+          <FilterBar
+            books={books}
+            genre={genre}
+            onGenre={setGenre}
+            query={query}
+            onQuery={setQuery}
+          />
+          {visibleBooks.length === 0 ? (
+            <div style={styles.empty}>
+              <p>No books match.</p>
+            </div>
+          ) : (
+            <div style={styles.grid}>
+              {visibleBooks.map((book) => (
+                <BookCard
+                  key={book.id}
+                  book={book}
+                  isPlaying={activeBook?.id === book.id}
+                  onPlay={setActiveBook}
+                  onDeleted={handleDeleted}
+                  onUpdated={handleUpdated}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {showUpload && (
