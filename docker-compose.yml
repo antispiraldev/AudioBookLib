@@ -1,8 +1,6 @@
 services:
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
 
   postgres:
     image: postgres:16-alpine
@@ -20,8 +18,6 @@ services:
 
   backend:
     build: ./backend
-    ports:
-      - "8000:8000"
     volumes:
       - ./storage:/app/storage
       - ./backend:/app
