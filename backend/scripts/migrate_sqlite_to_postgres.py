@@ -26,6 +26,17 @@ BOOK_COLS = [
 SEGMENT_COLS = ["id", "book_id", "order", "text", "audio_path", "status", "duration"]
 
 
+def _clean(row: sqlite3.Row, cols: list[str]) -> dict:
+    """Postgres rejects NUL characters in text — scrub them during copy."""
+    out = {}
+    for col in cols:
+        val = row[col]
+        if isinstance(val, str):
+            val = val.replace("\x00", "")
+        out[col] = val
+    return out
+
+
 def main() -> None:
     if engine.dialect.name != "postgresql":
         sys.exit("DATABASE_URL is not Postgres — nothing to migrate into.")
@@ -50,7 +61,7 @@ def main() -> None:
                     "VALUES (:id, :title, :author, :filename, :pdf_path, :status, "
                     ":page_count, :genre, :year, :notes, :created_at)"
                 ),
-                {col: row[col] for col in BOOK_COLS},
+                _clean(row, BOOK_COLS),
             )
 
         segments = src.execute("SELECT * FROM segments").fetchall()
@@ -61,7 +72,7 @@ def main() -> None:
                     "status, duration) "
                     'VALUES (:id, :book_id, :order, :text, :audio_path, :status, :duration)'
                 ),
-                {col: row[col] for col in SEGMENT_COLS},
+                _clean(row, SEGMENT_COLS),
             )
 
         for table in ("books", "segments"):

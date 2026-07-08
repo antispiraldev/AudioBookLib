@@ -19,6 +19,8 @@ def extract_text_chunks(pdf_path: str) -> tuple[int, List[str]]:
     pages_text = [_extract_page(page) for page in doc]
     doc.close()
     full_text = "\n\n".join(t for t in pages_text if t)
+    # Some PDFs yield NUL characters, which Postgres rejects in text columns
+    full_text = full_text.replace("\x00", "")
     return page_count, _split(full_text)
 
 
