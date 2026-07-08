@@ -25,6 +25,18 @@ def _base_url() -> str:
     return os.getenv("PUBLIC_BASE_URL", "http://localhost").rstrip("/")
 
 
+def _allowed(email: str) -> bool:
+    """ALLOWED_EMAILS limits sign-in to listed accounts; empty = open."""
+    raw = os.getenv("ALLOWED_EMAILS", "").strip()
+    if not raw:
+        return True
+    allowed = {e.strip().lower() for e in raw.split(",") if e.strip()}
+    admin = os.getenv("ADMIN_EMAIL", "").strip().lower()
+    if admin:
+        allowed.add(admin)
+    return email.lower() in allowed
+
+
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | None:
     user_id = request.session.get("user_id")
     if user_id is None:
@@ -57,6 +69,9 @@ async def callback(request: Request, db: Session = Depends(get_db)):
     info = token.get("userinfo")
     if not info or not info.get("sub"):
         return RedirectResponse("/")
+
+    if not _allowed(info.get("email", "")):
+        return RedirectResponse("/?login=denied")
 
     user = db.query(User).filter(User.google_id == info["sub"]).first()
     if not user:

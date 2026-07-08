@@ -54,3 +54,4 @@ R2 storage is optional. If `R2_ACCOUNT_ID` is not set, audio is served from the 
 | `SESSION_SECRET`      | With auth| Cookie signing key (`openssl rand -hex 32`) |
 | `ADMIN_EMAIL`         | With auth| This Google account becomes admin on sign-in |
 | `PUBLIC_BASE_URL`     | With auth| Origin used for the OAuth redirect (e.g. `https://voxshelf.io`) |
+| `ALLOWED_EMAILS`      | No       | Comma-separated sign-in allowlist; empty = open |

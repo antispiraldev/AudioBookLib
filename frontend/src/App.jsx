@@ -14,10 +14,16 @@ export default function App() {
   const [genre, setGenre] = useState(null);
   const [query, setQuery] = useState("");
   const [user, setUser] = useState(null);
+  const [loginDenied, setLoginDenied] = useState(false);
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     fetchMe().then(setUser).catch(() => {});
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("login") === "denied") {
+      setLoginDenied(true);
+      window.history.replaceState({}, "", "/");
+    }
   }, []);
 
   async function handleLogout() {
@@ -99,6 +105,16 @@ export default function App() {
           )}
         </div>
       </header>
+
+      {loginDenied && (
+        <div style={styles.denied}>
+          This is a private beta — your Google account isn't on the invite
+          list yet.
+          <button style={styles.deniedClose} onClick={() => setLoginDenied(false)}>
+            ✕
+          </button>
+        </div>
+      )}
 
       {books.length === 0 ? (
         <div style={styles.empty}>
@@ -203,6 +219,24 @@ const styles = {
     padding: "7px 14px",
     fontSize: 13,
     textDecoration: "none",
+  },
+  denied: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    margin: "16px 24px 0",
+    padding: "10px 16px",
+    fontSize: 13,
+    background: "var(--surface)",
+    border: "1px solid var(--danger)",
+    borderRadius: 8,
+    color: "var(--text)",
+  },
+  deniedClose: {
+    background: "transparent",
+    color: "var(--text-muted)",
+    fontSize: 13,
   },
   grid: {
     display: "grid",
