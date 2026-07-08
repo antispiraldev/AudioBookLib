@@ -55,6 +55,7 @@ Segment: pending → processing → ready
 | Cloudflare R2   | MP3 storage (private bucket, signed URLs)         |
 | OpenAI tts-1-hd | Audio synthesis                                   |
 | OpenAI gpt-4o-mini | Metadata suggestions                           |
+| Google OAuth (Authlib) | Sign-in; admin role gates uploads/edits/synthesis |
 
 ## Hosting
 

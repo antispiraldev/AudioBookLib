@@ -49,3 +49,8 @@ R2 storage is optional. If `R2_ACCOUNT_ID` is not set, audio is served from the 
 | `R2_ACCESS_KEY_ID`    | No       | R2 S3-compatible access key        |
 | `R2_SECRET_ACCESS_KEY`| No       | R2 S3-compatible secret key        |
 | `R2_BUCKET_NAME`      | No       | R2 bucket name (default: `audiobooklib`) |
+| `GOOGLE_CLIENT_ID`    | No       | Google OAuth client (omit to disable sign-in) |
+| `GOOGLE_CLIENT_SECRET`| No       | Google OAuth client secret         |
+| `SESSION_SECRET`      | With auth| Cookie signing key (`openssl rand -hex 32`) |
+| `ADMIN_EMAIL`         | With auth| This Google account becomes admin on sign-in |
+| `PUBLIC_BASE_URL`     | With auth| Origin used for the OAuth redirect (e.g. `https://voxshelf.io`) |

@@ -49,3 +49,17 @@ export async function retryBook(id) {
 export function audioUrl(segmentId) {
   return `${BASE}/audio/${segmentId}`;
 }
+
+export async function fetchMe() {
+  const r = await fetch(`${BASE}/auth/me`);
+  if (!r.ok) return null;
+  return r.json();
+}
+
+export async function logout() {
+  await fetch(`${BASE}/auth/logout`, { method: "POST" });
+}
+
+export function loginUrl() {
+  return `${BASE}/auth/login`;
+}

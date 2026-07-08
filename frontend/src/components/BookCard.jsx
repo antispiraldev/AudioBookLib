@@ -19,7 +19,7 @@ const STATUS_LABEL = {
   error: "Error",
 };
 
-export default function BookCard({ book, isPlaying, onPlay, onDeleted, onUpdated }) {
+export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, onUpdated }) {
   const [showEdit, setShowEdit] = useState(false);
   const [retryError, setRetryError] = useState("");
 
@@ -96,14 +96,18 @@ export default function BookCard({ book, isPlaying, onPlay, onDeleted, onUpdated
                 {isPlaying ? "Playing" : "Play"}
               </button>
             )}
-            {book.status === "error" && (
+            {isAdmin && book.status === "error" && (
               <button style={styles.retryBtn} onClick={handleRetry}>Retry</button>
             )}
-            {isStuck && (
+            {isAdmin && isStuck && (
               <button style={styles.retryBtn} onClick={handleRetry}>Refresh</button>
             )}
-            <button style={styles.iconBtn} onClick={() => setShowEdit(true)} title="Edit">✏</button>
-            <button style={styles.deleteBtn} onClick={handleDelete} title="Delete">✕</button>
+            {isAdmin && (
+              <>
+                <button style={styles.iconBtn} onClick={() => setShowEdit(true)} title="Edit">✏</button>
+                <button style={styles.deleteBtn} onClick={handleDelete} title="Delete">✕</button>
+              </>
+            )}
           </div>
         </div>
       </div>

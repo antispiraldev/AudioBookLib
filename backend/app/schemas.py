@@ -3,6 +3,15 @@ from datetime import datetime
 from typing import Optional, List
 
 
+class UserOut(BaseModel):
+    id: int
+    email: str
+    display_name: Optional[str] = None
+    role: str
+
+    model_config = {"from_attributes": True}
+
+
 class SegmentOut(BaseModel):
     id: int
     order: int

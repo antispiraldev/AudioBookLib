@@ -12,6 +12,7 @@ from ..schemas import BookOut, BookUpdate
 from ..services import storage
 from ..services.suggest import suggest_metadata
 from ..tasks import ingest_and_synthesize, synthesize_book
+from .auth import require_admin
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ def get_book(book_id: int, db: Session = Depends(get_db)):
     return book
 
 
-@router.post("/", response_model=BookOut)
+@router.post("/", response_model=BookOut, dependencies=[Depends(require_admin)])
 async def upload_book(
     file: UploadFile = File(...),
     title: str = Form(...),
@@ -66,7 +67,7 @@ async def upload_book(
     return book
 
 
-@router.patch("/{book_id}", response_model=BookOut)
+@router.patch("/{book_id}", response_model=BookOut, dependencies=[Depends(require_admin)])
 def update_book(book_id: int, data: BookUpdate, db: Session = Depends(get_db)):
     book = db.get(Book, book_id)
     if not book:
@@ -78,7 +79,7 @@ def update_book(book_id: int, data: BookUpdate, db: Session = Depends(get_db)):
     return book
 
 
-@router.get("/{book_id}/suggest")
+@router.get("/{book_id}/suggest", dependencies=[Depends(require_admin)])
 def suggest_book_metadata(book_id: int, db: Session = Depends(get_db)):
     book = db.get(Book, book_id)
     if not book:
@@ -98,7 +99,7 @@ def suggest_book_metadata(book_id: int, db: Session = Depends(get_db)):
         raise HTTPException(502, f"Suggestion failed: {e}")
 
 
-@router.post("/{book_id}/synthesize", response_model=BookOut)
+@router.post("/{book_id}/synthesize", response_model=BookOut, dependencies=[Depends(require_admin)])
 def retry_synthesize(book_id: int, db: Session = Depends(get_db)):
     book = db.get(Book, book_id)
     if not book:
@@ -107,7 +108,7 @@ def retry_synthesize(book_id: int, db: Session = Depends(get_db)):
     return book
 
 
-@router.delete("/{book_id}")
+@router.delete("/{book_id}", dependencies=[Depends(require_admin)])
 def delete_book(book_id: int, db: Session = Depends(get_db)):
     book = db.get(Book, book_id)
     if not book:

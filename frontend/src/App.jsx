@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { fetchBooks } from "./api";
+import { fetchBooks, fetchMe, logout, loginUrl } from "./api";
 import BookCard from "./components/BookCard";
 import UploadModal from "./components/UploadModal";
 import AudioPlayer from "./components/AudioPlayer";
@@ -13,6 +13,17 @@ export default function App() {
   const [activeBook, setActiveBook] = useState(null);
   const [genre, setGenre] = useState(null);
   const [query, setQuery] = useState("");
+  const [user, setUser] = useState(null);
+  const isAdmin = user?.role === "admin";
+
+  useEffect(() => {
+    fetchMe().then(setUser).catch(() => {});
+  }, []);
+
+  async function handleLogout() {
+    await logout();
+    setUser(null);
+  }
 
   const visibleBooks = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -67,18 +78,36 @@ export default function App() {
   return (
     <div style={{ paddingBottom: activeBook ? 90 : 0 }}>
       <header style={styles.header}>
-        <h1 style={styles.logo}>AudioBookLib</h1>
-        <button style={styles.addBtn} onClick={() => setShowUpload(true)}>
-          + Add Book
-        </button>
+        <h1 style={styles.logo}>VoxShelf</h1>
+        <div style={styles.headerRight}>
+          {isAdmin && (
+            <button style={styles.addBtn} onClick={() => setShowUpload(true)}>
+              + Add Book
+            </button>
+          )}
+          {user ? (
+            <>
+              <span style={styles.userName}>{user.display_name || user.email}</span>
+              <button style={styles.authBtn} onClick={handleLogout}>
+                Sign out
+              </button>
+            </>
+          ) : (
+            <a style={styles.authLink} href={loginUrl()}>
+              Sign in
+            </a>
+          )}
+        </div>
       </header>
 
       {books.length === 0 ? (
         <div style={styles.empty}>
           <p>No books yet.</p>
-          <button style={styles.addBtnLarge} onClick={() => setShowUpload(true)}>
-            Upload your first PDF
-          </button>
+          {isAdmin && (
+            <button style={styles.addBtnLarge} onClick={() => setShowUpload(true)}>
+              Upload your first PDF
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -99,6 +128,7 @@ export default function App() {
                 <BookCard
                   key={book.id}
                   book={book}
+                  isAdmin={isAdmin}
                   isPlaying={activeBook?.id === book.id}
                   onPlay={setActiveBook}
                   onDeleted={handleDeleted}
@@ -148,6 +178,31 @@ const styles = {
     padding: "8px 16px",
     fontSize: 13,
     fontWeight: 500,
+  },
+  headerRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+  },
+  userName: {
+    fontSize: 13,
+    color: "var(--text-muted)",
+  },
+  authBtn: {
+    background: "transparent",
+    border: "1px solid var(--border)",
+    color: "var(--text-muted)",
+    borderRadius: 7,
+    padding: "7px 14px",
+    fontSize: 13,
+  },
+  authLink: {
+    border: "1px solid var(--border)",
+    color: "var(--text)",
+    borderRadius: 7,
+    padding: "7px 14px",
+    fontSize: 13,
+    textDecoration: "none",
   },
   grid: {
     display: "grid",
