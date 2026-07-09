@@ -15,3 +15,10 @@ for i in [24, 23, 22, 21, 20, 15, 14, 13, 12, 11, 10, 4]:
     synthesize_book.delay(i)
 print(\"queued 12 books\")
 "
+2026-07-09 16:20:48 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose logs worker --since 24h 2>&1 | grep -iA3 -B1 'book 23\|segment 4696\|4696' | tail -40
+2026-07-09 17:05:29 UTC | exit 0 | wc -l < /root/.ssh/authorized_keys; echo '---'; awk '{print $NF}' /root/.ssh/authorized_keys
+2026-07-09 17:08:31 UTC | exit 0 | nl -ba /root/.ssh/authorized_keys | sed -E 's/(ssh-[a-z0-9]+ )[A-Za-z0-9+/=]{20,}/\1[KEYMATERIAL]/'
+2026-07-09 17:11:25 UTC | exit 0 | echo '=== effective sshd settings ==='; sshd -T 2>/dev/null | grep -iE '^(passwordauthentication|permitrootlogin|pubkeyauthentication|challengeresponseauthentication|kbdinteractiveauthentication|permitemptypasswords)\b'; echo; echo '=== recent failed-login volume (brute force?) ==='; (journalctl -u ssh --since '24 hours ago' 2>/dev/null | grep -c 'Failed password') || grep -c 'Failed password' /var/log/auth.log 2>/dev/null || echo 'n/a'
+2026-07-09 17:12:35 UTC | exit 0 | echo '=== Include directive + position in main config ==='; grep -nE '^\s*Include' /etc/ssh/sshd_config; echo; echo '=== drop-in files (lexical order) ==='; ls -1 /etc/ssh/sshd_config.d/ 2>/dev/null; echo; echo '=== any PasswordAuthentication/PermitRootLogin set in drop-ins ==='; grep -rniE 'passwordauthentication|permitrootlogin' /etc/ssh/sshd_config.d/ 2>/dev/null || echo '(none in drop-ins)'; echo; echo '=== and in main config ==='; grep -niE '^\s*(passwordauthentication|permitrootlogin)' /etc/ssh/sshd_config
+2026-07-09 17:13:31 UTC | exit 0 | set -e; cp -a /etc/ssh/sshd_config.d /root/sshd_config.d.bak.$(date +%s); printf "PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin prohibit-password\n" > /etc/ssh/sshd_config.d/00-hardening.conf; if sshd -t; then echo VALID; else rm -f /etc/ssh/sshd_config.d/00-hardening.conf; echo INVALID-REVERTED; exit 1; fi; systemctl reload ssh; echo "=== effective after reload ==="; sshd -T | grep -iE "^(passwordauthentication|permitrootlogin|kbdinteractiveauthentication)\b"
+2026-07-09 17:13:48 UTC | exit 0 | whoami && echo KEY_ACCESS_OK
