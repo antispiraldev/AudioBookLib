@@ -56,6 +56,9 @@ export default function ReviewModal({ book, onClose, onApproved }) {
 
   const total = segments?.length ?? 0;
   const chars = segments?.reduce((n, s) => n + s.text.length, 0) ?? 0;
+  // Mirror backend MIN_CHARS_PER_PAGE: too little text means no text layer.
+  const pages = book.page_count ?? 0;
+  const likelyScanned = segments && pages > 0 && chars / pages < 200;
 
   return (
     <div style={styles.overlay} onClick={onClose}>
@@ -76,6 +79,14 @@ export default function ReviewModal({ book, onClose, onApproved }) {
           Read through the cleaned text and fix any artifacts before generating
           audio. Editing a segment re-queues just that segment.
         </p>
+
+        {likelyScanned && (
+          <p style={styles.warn}>
+            ⚠ Likely a scanned PDF — only {chars.toLocaleString()} characters
+            across {pages} pages. This book probably has no text layer and needs
+            OCR; synthesizing now would produce near-silence. Don't approve.
+          </p>
+        )}
 
         <div style={styles.list}>
           {error && <p style={styles.error}>{error}</p>}
@@ -178,6 +189,16 @@ const styles = {
   },
   muted: { fontSize: 13, color: "var(--text-muted)" },
   error: { fontSize: 13, color: "var(--danger)" },
+  warn: {
+    fontSize: 12.5,
+    lineHeight: 1.5,
+    color: "var(--text)",
+    background: "var(--surface2)",
+    border: "1px solid var(--danger)",
+    borderRadius: 8,
+    padding: "10px 12px",
+    margin: "0 0 12px",
+  },
   segment: {
     border: "1px solid var(--border)",
     borderRadius: 8,

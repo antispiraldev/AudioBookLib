@@ -7,6 +7,73 @@ import fitz  # PyMuPDF
 
 CHUNK_SIZE = 3500  # safe under OpenAI's 4096-char TTS limit
 
+# A text-layer PDF yields ~1500-3000 chars/page; a scanned/image PDF yields
+# almost none. Below this we assume no usable text layer (needs OCR).
+MIN_CHARS_PER_PAGE = 200
+# Whole-document floor: even a short essay extracts to more than this. Below it
+# the text layer is effectively dead (also catches PDFs whose page count itself
+# extracts wrong, e.g. a multi-page scan reported as one page).
+MIN_TOTAL_CHARS = 1500
+
+
+def looks_scanned(page_count: int, total_chars: int) -> bool:
+    """True if extraction yielded too little text to be a real text layer."""
+    if total_chars < MIN_TOTAL_CHARS:
+        return True
+    if page_count <= 0:
+        return False
+    return total_chars / page_count < MIN_CHARS_PER_PAGE
+
+
+def _is_prose_line(line: str) -> bool:
+    """A real body line: long, mixed-case, not page-number-heavy.
+
+    Extraction emits one line per source line (not per paragraph), so we can't
+    rely on sentence-ending punctuation. Instead: length + lowercase presence +
+    sparse standalone numbers, and it must not end on a page number.
+    """
+    s = line.strip()
+    if len(s) < 60 or not any(c.islower() for c in s):
+        return False
+    if s[-1].isdigit():
+        return False
+    return len(_STANDALONE_NUM_RE.findall(s)) <= 1
+
+
+def _strip_front_matter(text: str) -> str:
+    """Drop a leading table-of-contents / list-of-illustrations block.
+
+    Conservative: only fires when a 'Contents' heading appears near the top and
+    a run of real body prose is found after it; otherwise the text is untouched.
+    """
+    lines = text.split("\n")
+    limit = max(1, len(lines) // 6)  # front matter lives in the first ~15%
+    contents_idx = next(
+        (i for i, ln in enumerate(lines[:limit]) if _CONTENTS_HEADING_RE.match(ln)),
+        None,
+    )
+    if contents_idx is None:
+        return text
+
+    # Find where the body starts: the first of two consecutive prose lines.
+    body_start = None
+    run_start = None
+    run = 0
+    for i in range(contents_idx + 1, len(lines)):
+        if _is_prose_line(lines[i]):
+            if run == 0:
+                run_start = i
+            run += 1
+            if run >= 2:
+                body_start = run_start
+                break
+        else:
+            run = 0
+    if body_start is None:
+        return text  # couldn't confidently locate the body — don't cut
+
+    return "\n".join(lines[:contents_idx] + lines[body_start:])
+
 # Bracketed numeric citation markers: [12], [12, 15], [12–14]
 _CITATION_RE = re.compile(r"\[\d+(?:\s*[,–-]\s*\d+)*\]")
 # URLs and bare DOIs, which TTS reads out character by character
@@ -27,6 +94,11 @@ _GUTENBERG_END = re.compile(
 _REFS_HEADING_RE = re.compile(
     r"(?im)^\s*(references|bibliography|works cited)\.?\s*$"
 )
+# A "Contents" / "Table of Contents" heading line (heading formatting may have
+# title-cased it and appended a period).
+_CONTENTS_HEADING_RE = re.compile(r"(?i)^\s*(table\s+of\s+)?contents\.?\s*$")
+# Standalone integers, used to spot page-number-dense table-of-contents lines.
+_STANDALONE_NUM_RE = re.compile(r"\b\d{1,3}\b")
 # Abbreviations that TTS mishandles → spoken-form expansions. Applied before
 # sentence splitting so their internal periods don't create false boundaries.
 _ABBREVIATIONS = [
@@ -69,6 +141,9 @@ def _normalize_text(text: str) -> str:
     end = _GUTENBERG_END.search(text)
     if end:
         text = text[: end.start()]
+
+    # Drop a leading table-of-contents / list-of-illustrations block
+    text = _strip_front_matter(text)
 
     # Drop a trailing references/bibliography section, but only when it appears
     # in the last ~30% of the document so a mid-body mention isn't cut.

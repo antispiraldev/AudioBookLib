@@ -20,14 +20,14 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.pdf import extract_text_chunks, CHUNK_SIZE  # noqa: E402
+from app.services.pdf import extract_text_chunks, looks_scanned, CHUNK_SIZE  # noqa: E402
 
 SHORT = 120  # chars; below this a body segment is suspiciously stubby
 
 _RESIDUAL_CITATION = re.compile(r"\[\d+(?:[\s,–-]+\d+)*\]")
 _RESIDUAL_URL = re.compile(r"https?://|\bdoi:", re.IGNORECASE)
-_CAPS_RUN = re.compile(r"\b[A-Z]{4,}(?:\s+[A-Z]{4,}){2,}")
 _SPACED_LETTERS = re.compile(r"(?:\b[A-Za-z]\s){4,}")
+_GUTENBERG_RESIDUE = re.compile(r"project gutenberg", re.IGNORECASE)
 
 
 def _non_text_ratio(s: str) -> float:
@@ -37,7 +37,17 @@ def _non_text_ratio(s: str) -> float:
     return noise / len(s)
 
 
+def _short_token_ratio(s: str) -> float:
+    """Fraction of 1-2 char alpha tokens — high means OCR letter-spacing/garble."""
+    toks = [t for t in s.split() if any(c.isalpha() for c in t)]
+    if not toks:
+        return 0.0
+    return sum(1 for t in toks if len(t) <= 2) / len(toks)
+
+
 def flags_for(text: str, is_last: bool) -> list[str]:
+    # Note: CAPS-RUN was dropped — it fired on names/emphasis (PUBLIUS, QUEEN
+    # ANNE) that modern TTS reads fine, drowning out real artifacts.
     flags = []
     n = len(text)
     if n > CHUNK_SIZE:
@@ -47,12 +57,15 @@ def flags_for(text: str, is_last: bool) -> list[str]:
     ratio = _non_text_ratio(text)
     if ratio > 0.12:
         flags.append(f"SYMBOL-HEAVY({ratio:.0%})")
+    stok = _short_token_ratio(text)
+    if stok > 0.30:
+        flags.append(f"GIBBERISH({stok:.0%})")
     if _RESIDUAL_CITATION.search(text):
         flags.append("RESIDUAL-CITATION")
     if _RESIDUAL_URL.search(text):
         flags.append("RESIDUAL-URL")
-    if _CAPS_RUN.search(text):
-        flags.append("CAPS-RUN")
+    if _GUTENBERG_RESIDUE.search(text):
+        flags.append("GUTENBERG-RESIDUE")
     if _SPACED_LETTERS.search(text):
         flags.append("OCR-SPACING")
     return flags
@@ -74,12 +87,18 @@ def preview(pdf_path: str, summary: bool, use_llm: bool) -> dict:
             flagged.append((i, f, c))
 
     name = os.path.basename(pdf_path)
+    total_chars = sum(lengths)
+    per_page = total_chars // page_count if page_count else total_chars
+    scanned = looks_scanned(page_count, total_chars)
     print(f"\n=== {name} ===")
     print(f"pages: {page_count}   segments: {n}   "
-          f"chars: total {sum(lengths):,}  "
+          f"chars: total {total_chars:,}  "
           f"min {min(lengths) if lengths else 0}  "
           f"max {max(lengths) if lengths else 0}  "
-          f"mean {sum(lengths)//n if n else 0}")
+          f"mean {sum(lengths)//n if n else 0}   "
+          f"chars/page {per_page}")
+    if scanned:
+        print("  ⚠⚠ LIKELY SCANNED — no usable text layer, needs OCR")
     print(f"flagged: {len(flagged)}/{n}")
 
     if not summary:
@@ -97,7 +116,8 @@ def preview(pdf_path: str, summary: bool, use_llm: bool) -> dict:
             print(f"\n  ⚠ seg {i}  {' '.join(f)}")
             print("    " + re.sub(r"\s+", " ", c[:180]))
 
-    return {"name": name, "pages": page_count, "segments": n, "flagged": len(flagged)}
+    return {"name": name, "pages": page_count, "segments": n,
+            "flagged": len(flagged), "per_page": per_page, "scanned": scanned}
 
 
 def main() -> None:
@@ -116,9 +136,11 @@ def main() -> None:
 
     if len(rows) > 1:
         print("\n\n=== SUMMARY ===")
-        print(f"{'book':<40} {'pages':>6} {'segs':>6} {'flagged':>8}")
+        print(f"{'book':<40} {'pages':>6} {'segs':>6} {'flagged':>8} {'ch/pg':>7}  note")
         for r in rows:
-            print(f"{r['name'][:40]:<40} {r['pages']:>6} {r['segments']:>6} {r['flagged']:>8}")
+            note = "SCANNED — needs OCR" if r.get("scanned") else ""
+            print(f"{r['name'][:40]:<40} {r['pages']:>6} {r['segments']:>6} "
+                  f"{r['flagged']:>8} {r.get('per_page', 0):>7}  {note}")
 
 
 if __name__ == "__main__":

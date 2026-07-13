@@ -14,7 +14,7 @@ flowchart TD
     Queue --> Ingest
 
     subgraph Worker ["Celery Worker (concurrency=5)"]
-        Ingest["ingest_book\n─────────────────\nPyMuPDF block/span analysis\n• detect body font size\n• skip headers / footers\n• skip page numbers\n• skip footnotes\n• rejoin hyphenated breaks\n• format headings for TTS\nHeuristic cleanup\n• NFKC / ligatures\n• strip Project Gutenberg header/license\n• strip [n] citations, URLs/DOIs\n• drop trailing references section\n• expand e.g./i.e./et al.\nChunk text ~3500 chars (hard-split oversized)\ngpt-4o-mini polish (verbatim)\n→ status: review (pause)"]
+        Ingest["ingest_book\n─────────────────\nPyMuPDF block/span analysis\n• detect body font size\n• skip headers / footers\n• skip page numbers\n• skip footnotes\n• rejoin hyphenated breaks\n• format headings for TTS\nHeuristic cleanup\n• NFKC / ligatures\n• strip Project Gutenberg header/license\n• strip leading table-of-contents block\n• strip [n] citations, URLs/DOIs\n• drop trailing references section\n• expand e.g./i.e./et al.\ndetect scanned PDFs (chars/page) → needs OCR\nChunk text ~3500 chars (hard-split oversized)\ngpt-4o-mini polish (verbatim)\n→ status: review (pause)"]
 
         Review["Admin review\n─────────────\nGET /books/{id}/segments\nedit segments if needed\nPOST /books/{id}/synthesize"]
         Ingest -->|"status: review"| Review

@@ -7,7 +7,7 @@ from .celery_app import celery
 from .database import SessionLocal
 from .models import Book, Segment
 from .services.clean import llm_clean
-from .services.pdf import extract_text_chunks
+from .services.pdf import extract_text_chunks, looks_scanned
 from .services.tts import synthesize
 from .services import storage
 
@@ -34,6 +34,16 @@ def ingest_book(book_id: int) -> None:
         with storage.local_pdf(book.pdf_path) as pdf_path:
             page_count, chunks = extract_text_chunks(pdf_path)
         book.page_count = page_count
+
+        total_chars = sum(len(c) for c in chunks)
+        if looks_scanned(page_count, total_chars):
+            # No usable text layer — a scanned/image PDF. Land it in review so
+            # the admin sees the warning instead of synthesizing near-silence.
+            log.warning(
+                "Book %s looks scanned: %d chars across %d pages — likely needs OCR",
+                book_id, total_chars, page_count,
+            )
+
         for i, text in enumerate(chunks):
             db.add(Segment(book_id=book_id, order=i, text=llm_clean(text)))
         db.commit()
