@@ -27,6 +27,7 @@ class BookOut(BaseModel):
     author: Optional[str] = None
     filename: str
     status: str
+    hidden: bool = False
     page_count: Optional[int] = None
     genre: Optional[str] = None
     year: Optional[int] = None
@@ -43,3 +44,4 @@ class BookUpdate(BaseModel):
     genre: Optional[str] = None
     year: Optional[int] = None
     notes: Optional[str] = None
+    hidden: Optional[bool] = None

@@ -7,12 +7,12 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Book, Segment
+from ..models import Book, Segment, User
 from ..schemas import BookOut, BookUpdate
 from ..services import storage
 from ..services.suggest import suggest_metadata
 from ..tasks import ingest_and_synthesize, synthesize_book
-from .auth import require_admin
+from .auth import get_current_user, require_admin
 
 log = logging.getLogger(__name__)
 
@@ -23,15 +23,31 @@ STORAGE_PDF = "storage/pdfs"
 os.makedirs(STORAGE_PDF, exist_ok=True)
 
 
+def _is_admin(user: Optional[User]) -> bool:
+    return user is not None and user.role == "admin"
+
+
 @router.get("/", response_model=List[BookOut])
-def list_books(db: Session = Depends(get_db)):
-    return db.query(Book).order_by(Book.created_at.desc()).all()
+def list_books(
+    db: Session = Depends(get_db),
+    user: Optional[User] = Depends(get_current_user),
+):
+    q = db.query(Book).order_by(Book.created_at.desc())
+    if not _is_admin(user):
+        q = q.filter(Book.hidden.is_(False))
+    return q.all()
 
 
 @router.get("/{book_id}", response_model=BookOut)
-def get_book(book_id: int, db: Session = Depends(get_db)):
+def get_book(
+    book_id: int,
+    db: Session = Depends(get_db),
+    user: Optional[User] = Depends(get_current_user),
+):
     book = db.get(Book, book_id)
     if not book:
+        raise HTTPException(404, "Book not found")
+    if book.hidden and not _is_admin(user):
         raise HTTPException(404, "Book not found")
     return book
 

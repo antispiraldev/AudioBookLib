@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, Text, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -26,6 +26,8 @@ class Book(Base):
     pdf_path = Column(String, nullable=False)
     # pending → processing → synthesizing → complete | error
     status = Column(String, default="pending")
+    # admin-only: hide from public listing (e.g. stuck/error books not yet ready)
+    hidden = Column(Boolean, nullable=False, default=False, server_default="false")
     page_count = Column(Integer, nullable=True)
     genre = Column(String, nullable=True)
     year = Column(Integer, nullable=True)

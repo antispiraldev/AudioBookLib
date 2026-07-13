@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { deleteBook, retryBook } from "../api";
+import { deleteBook, retryBook, updateBook } from "../api";
 import EditModal from "./EditModal";
 
 const PALETTE = [
@@ -46,10 +46,27 @@ export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, 
     }
   }
 
+  async function handleToggleHidden() {
+    setRetryError("");
+    try {
+      const updated = await updateBook(book.id, { hidden: !book.hidden });
+      onUpdated(updated);
+    } catch (e) {
+      setRetryError(e.message);
+    }
+  }
+
   return (
     <>
-      <div style={{ ...styles.card, outline: isPlaying ? `2px solid ${color(book.id)}` : "none" }}>
+      <div
+        style={{
+          ...styles.card,
+          outline: isPlaying ? `2px solid ${color(book.id)}` : "none",
+          opacity: book.hidden ? 0.55 : 1,
+        }}
+      >
         <div style={{ ...styles.cover, background: color(book.id) }}>
+          {book.hidden && <span style={styles.hiddenTag}>Hidden</span>}
           {isPlaying && <span style={styles.playingDot}>▶</span>}
         </div>
 
@@ -104,6 +121,13 @@ export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, 
             )}
             {isAdmin && (
               <>
+                <button
+                  style={styles.retryBtn}
+                  onClick={handleToggleHidden}
+                  title={book.hidden ? "Make visible to everyone" : "Hide from public listing"}
+                >
+                  {book.hidden ? "Show" : "Hide"}
+                </button>
                 <button style={styles.iconBtn} onClick={() => setShowEdit(true)} title="Edit">✏</button>
                 <button style={styles.deleteBtn} onClick={handleDelete} title="Delete">✕</button>
               </>
@@ -134,6 +158,7 @@ const styles = {
     transition: "outline 0.15s",
   },
   cover: {
+    position: "relative",
     height: 140,
     display: "flex",
     alignItems: "center",
@@ -143,6 +168,19 @@ const styles = {
   playingDot: {
     fontSize: 28,
     color: "rgba(255,255,255,0.9)",
+  },
+  hiddenTag: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: "0.3px",
+    textTransform: "uppercase",
+    color: "#fff",
+    background: "rgba(0,0,0,0.55)",
+    borderRadius: 4,
+    padding: "2px 6px",
   },
   body: {
     padding: "14px 16px",
