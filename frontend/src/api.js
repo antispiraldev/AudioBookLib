@@ -40,8 +40,27 @@ export async function suggestBook(id) {
   return r.json();
 }
 
-export async function retryBook(id) {
+export async function synthesizeBook(id) {
   const r = await fetch(`${BASE}/books/${id}/synthesize`, { method: "POST" });
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
+// Retrying a failed book and approving a reviewed one hit the same endpoint.
+export const retryBook = synthesizeBook;
+
+export async function fetchBookSegments(id) {
+  const r = await fetch(`${BASE}/books/${id}/segments`);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
+export async function updateSegment(bookId, order, text) {
+  const r = await fetch(`${BASE}/books/${bookId}/segments/${order}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
   if (!r.ok) throw new Error(await parseError(r));
   return r.json();
 }

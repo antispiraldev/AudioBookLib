@@ -32,6 +32,8 @@ class Book(Base):
     genre = Column(String, nullable=True)
     year = Column(Integer, nullable=True)
     notes = Column(Text, nullable=True)
+    # admin-only: per-book narration style/context passed to the TTS model
+    tts_instructions = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     segments = relationship(

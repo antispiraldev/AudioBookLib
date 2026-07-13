@@ -21,6 +21,19 @@ class SegmentOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SegmentText(BaseModel):
+    id: int
+    order: int
+    status: str
+    text: str
+
+    model_config = {"from_attributes": True}
+
+
+class SegmentUpdate(BaseModel):
+    text: str
+
+
 class BookOut(BaseModel):
     id: int
     title: str
@@ -32,6 +45,7 @@ class BookOut(BaseModel):
     genre: Optional[str] = None
     year: Optional[int] = None
     notes: Optional[str] = None
+    tts_instructions: Optional[str] = None
     created_at: datetime
     segments: List[SegmentOut] = []
 
@@ -45,3 +59,4 @@ class BookUpdate(BaseModel):
     year: Optional[int] = None
     notes: Optional[str] = None
     hidden: Optional[bool] = None
+    tts_instructions: Optional[str] = None

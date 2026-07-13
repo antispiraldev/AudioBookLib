@@ -8,10 +8,10 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Book, Segment, User
-from ..schemas import BookOut, BookUpdate
+from ..schemas import BookOut, BookUpdate, SegmentText, SegmentUpdate
 from ..services import storage
 from ..services.suggest import suggest_metadata
-from ..tasks import ingest_and_synthesize, synthesize_book
+from ..tasks import ingest_book, synthesize_book
 from .auth import get_current_user, require_admin
 
 log = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ async def upload_book(
         db.commit()
         db.refresh(book)
 
-    ingest_and_synthesize.delay(book.id)
+    ingest_book.delay(book.id)
     return book
 
 
@@ -93,6 +93,46 @@ def update_book(book_id: int, data: BookUpdate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(book)
     return book
+
+
+@router.get(
+    "/{book_id}/segments",
+    response_model=List[SegmentText],
+    dependencies=[Depends(require_admin)],
+)
+def list_book_segments(book_id: int, db: Session = Depends(get_db)):
+    book = db.get(Book, book_id)
+    if not book:
+        raise HTTPException(404, "Book not found")
+    return (
+        db.query(Segment)
+        .filter(Segment.book_id == book_id)
+        .order_by(Segment.order)
+        .all()
+    )
+
+
+@router.patch(
+    "/{book_id}/segments/{order}",
+    response_model=SegmentText,
+    dependencies=[Depends(require_admin)],
+)
+def update_book_segment(
+    book_id: int, order: int, data: SegmentUpdate, db: Session = Depends(get_db)
+):
+    seg = (
+        db.query(Segment)
+        .filter(Segment.book_id == book_id, Segment.order == order)
+        .first()
+    )
+    if not seg:
+        raise HTTPException(404, "Segment not found")
+    seg.text = data.text
+    # Edited text needs re-synthesis; drop any stale audio on the next approve.
+    seg.status = "pending"
+    db.commit()
+    db.refresh(seg)
+    return seg
 
 
 @router.get("/{book_id}/suggest", dependencies=[Depends(require_admin)])

@@ -8,6 +8,7 @@ export default function EditModal({ book, onClose, onSaved }) {
     genre: book.genre ?? "",
     year: book.year ?? "",
     notes: book.notes ?? "",
+    tts_instructions: book.tts_instructions ?? "",
   });
   const [loading, setLoading] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
@@ -28,6 +29,7 @@ export default function EditModal({ book, onClose, onSaved }) {
         genre: s.genre ?? f.genre,
         year: s.year != null ? String(s.year) : f.year,
         notes: s.notes ?? f.notes,
+        tts_instructions: f.tts_instructions,
       }));
     } catch (err) {
       setError(err.message);
@@ -48,6 +50,7 @@ export default function EditModal({ book, onClose, onSaved }) {
         genre: form.genre.trim() || null,
         year: form.year ? parseInt(form.year, 10) : null,
         notes: form.notes.trim() || null,
+        tts_instructions: form.tts_instructions.trim() || null,
       };
       const updated = await updateBook(book.id, payload);
       onSaved(updated);
@@ -127,6 +130,14 @@ export default function EditModal({ book, onClose, onSaved }) {
             placeholder="Your notes (optional)"
             value={form.notes}
             onChange={(e) => set("notes", e.target.value)}
+          />
+
+          <label style={styles.label}>Narration instructions</label>
+          <textarea
+            style={{ ...styles.input, ...styles.textarea }}
+            placeholder="How the narrator should read this book (tone, pace, style). Leave blank for the default."
+            value={form.tts_instructions}
+            onChange={(e) => set("tts_instructions", e.target.value)}
           />
 
           {error && <p style={{ color: "var(--danger)", fontSize: 13 }}>{error}</p>}

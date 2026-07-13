@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { deleteBook, retryBook, updateBook } from "../api";
 import EditModal from "./EditModal";
+import ReviewModal from "./ReviewModal";
 
 const PALETTE = [
   "#7c6af7", "#5b8af5", "#4caf82", "#e07c5b",
@@ -14,6 +15,7 @@ function color(id) {
 const STATUS_LABEL = {
   pending: "Queued",
   processing: "Extracting text…",
+  review: "Ready to review",
   synthesizing: "Generating audio…",
   complete: "Ready",
   error: "Error",
@@ -21,6 +23,7 @@ const STATUS_LABEL = {
 
 export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, onUpdated }) {
   const [showEdit, setShowEdit] = useState(false);
+  const [showReview, setShowReview] = useState(false);
   const [retryError, setRetryError] = useState("");
 
   const readySegments = book.segments.filter((s) => s.status === "ready").length;
@@ -113,6 +116,16 @@ export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, 
                 {isPlaying ? "Playing" : "Play"}
               </button>
             )}
+            {isAdmin && book.status === "review" && (
+              <>
+                <button style={styles.retryBtn} onClick={() => setShowReview(true)}>
+                  Review
+                </button>
+                <button style={styles.playBtn} onClick={handleRetry}>
+                  Approve
+                </button>
+              </>
+            )}
             {isAdmin && book.status === "error" && (
               <button style={styles.retryBtn} onClick={handleRetry}>Retry</button>
             )}
@@ -141,6 +154,14 @@ export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, 
           book={book}
           onClose={() => setShowEdit(false)}
           onSaved={onUpdated}
+        />
+      )}
+
+      {showReview && (
+        <ReviewModal
+          book={book}
+          onClose={() => setShowReview(false)}
+          onApproved={onUpdated}
         />
       )}
     </>

@@ -1,7 +1,12 @@
 from pathlib import Path
 from openai import OpenAI
 
+MODEL = "gpt-4o-mini-tts"
 VOICE = "alloy"
+DEFAULT_INSTRUCTIONS = (
+    "Read as a warm, measured audiobook narrator. Neutral, natural pacing. "
+    "Do not editorialize or change the words."
+)
 _client = None
 
 
@@ -12,11 +17,12 @@ def _get_client() -> OpenAI:
     return _client
 
 
-def synthesize(text: str, output_path: str) -> None:
+def synthesize(text: str, output_path: str, instructions: str | None = None) -> None:
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     response = _get_client().audio.speech.create(
-        model="tts-1-hd",
+        model=MODEL,
         voice=VOICE,
         input=text,
+        instructions=instructions or DEFAULT_INSTRUCTIONS,
     )
     response.stream_to_file(output_path)

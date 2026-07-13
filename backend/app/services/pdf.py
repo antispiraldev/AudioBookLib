@@ -1,10 +1,42 @@
 import re
+import unicodedata
 from collections import Counter
 from typing import List
 
 import fitz  # PyMuPDF
 
 CHUNK_SIZE = 3500  # safe under OpenAI's 4096-char TTS limit
+
+# Bracketed numeric citation markers: [12], [12, 15], [12–14]
+_CITATION_RE = re.compile(r"\[\d+(?:\s*[,–-]\s*\d+)*\]")
+# URLs and bare DOIs, which TTS reads out character by character
+_URL_RE = re.compile(r"https?://\S+|\bdoi:\s*\S+|\b10\.\d{4,}/\S+", re.IGNORECASE)
+# Project Gutenberg wraps the actual text in standard START/END banners, with a
+# metadata header before and the full legal license after — all of which would
+# otherwise be read aloud.
+_GUTENBERG_START = re.compile(
+    r"\*\*\*\s*START\s+OF\s+TH(?:E|IS)\s+PROJECT\s+GUTENBERG.*?\*\*\*",
+    re.IGNORECASE | re.DOTALL,
+)
+_GUTENBERG_END = re.compile(
+    r"\*\*\*\s*END\s+OF\s+TH(?:E|IS)\s+PROJECT\s+GUTENBERG.*?\*\*\*",
+    re.IGNORECASE | re.DOTALL,
+)
+
+# A line that is nothing but a references/bibliography heading
+_REFS_HEADING_RE = re.compile(
+    r"(?im)^\s*(references|bibliography|works cited)\.?\s*$"
+)
+# Abbreviations that TTS mishandles → spoken-form expansions. Applied before
+# sentence splitting so their internal periods don't create false boundaries.
+_ABBREVIATIONS = [
+    (re.compile(r"\be\.g\.", re.IGNORECASE), "for example"),
+    (re.compile(r"\bi\.e\.", re.IGNORECASE), "that is"),
+    (re.compile(r"\bet al\.", re.IGNORECASE), "and colleagues"),
+    (re.compile(r"\bcf\.", re.IGNORECASE), "compare"),
+    (re.compile(r"\bFig\.", re.IGNORECASE), "Figure"),
+    (re.compile(r"\bvs\.", re.IGNORECASE), "versus"),
+]
 
 # Fraction of page height treated as header/footer zone
 MARGIN_FRACTION = 0.08
@@ -21,7 +53,36 @@ def extract_text_chunks(pdf_path: str) -> tuple[int, List[str]]:
     full_text = "\n\n".join(t for t in pages_text if t)
     # Some PDFs yield NUL characters, which Postgres rejects in text columns
     full_text = full_text.replace("\x00", "")
+    full_text = _normalize_text(full_text)
     return page_count, _split(full_text)
+
+
+def _normalize_text(text: str) -> str:
+    """Heuristic cleanup so the narration reads naturally and drops artifacts."""
+    # Normalize ligatures (ﬁ/ﬂ), smart quotes, and exotic dashes to plain ASCII-ish
+    text = unicodedata.normalize("NFKC", text)
+
+    # Strip Project Gutenberg header (before START) and license (after END)
+    start = _GUTENBERG_START.search(text)
+    if start:
+        text = text[start.end():]
+    end = _GUTENBERG_END.search(text)
+    if end:
+        text = text[: end.start()]
+
+    # Drop a trailing references/bibliography section, but only when it appears
+    # in the last ~30% of the document so a mid-body mention isn't cut.
+    for match in _REFS_HEADING_RE.finditer(text):
+        if match.start() >= len(text) * 0.7:
+            text = text[: match.start()]
+            break
+
+    text = _CITATION_RE.sub("", text)
+    text = _URL_RE.sub("", text)
+    for pattern, replacement in _ABBREVIATIONS:
+        text = pattern.sub(replacement, text)
+
+    return text
 
 
 def _extract_page(page: fitz.Page) -> str:
@@ -117,11 +178,31 @@ def _split(text: str) -> List[str]:
     chunks: List[str] = []
     current = ""
     for sentence in sentences:
-        if current and len(current) + len(sentence) + 1 > CHUNK_SIZE:
-            chunks.append(current.strip())
-            current = sentence
-        else:
-            current = (current + " " + sentence).lstrip()
+        # A single sentence longer than the cap can't be packed — hard-split it
+        # on whitespace so no chunk ever exceeds OpenAI's limit.
+        for piece in _split_oversized(sentence):
+            if current and len(current) + len(piece) + 1 > CHUNK_SIZE:
+                chunks.append(current.strip())
+                current = piece
+            else:
+                current = (current + " " + piece).lstrip()
     if current.strip():
         chunks.append(current.strip())
     return chunks
+
+
+def _split_oversized(sentence: str) -> List[str]:
+    """Break a single over-cap sentence into <= CHUNK_SIZE whitespace pieces."""
+    if len(sentence) <= CHUNK_SIZE:
+        return [sentence]
+    pieces: List[str] = []
+    current = ""
+    for word in sentence.split():
+        if current and len(current) + len(word) + 1 > CHUNK_SIZE:
+            pieces.append(current)
+            current = word
+        else:
+            current = (current + " " + word).lstrip()
+    if current:
+        pieces.append(current)
+    return pieces
