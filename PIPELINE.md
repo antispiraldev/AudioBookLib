@@ -14,9 +14,9 @@ flowchart TD
     Queue --> Ingest
 
     subgraph Worker ["Celery Worker (concurrency=5)"]
-        Ingest["ingest_book\n─────────────────\nPyMuPDF block/span analysis\n• detect body font size\n• skip headers / footers\n• skip page numbers\n• skip footnotes\n• rejoin hyphenated breaks\n• format headings for TTS\nHeuristic cleanup\n• NFKC / ligatures\n• strip Project Gutenberg header/license\n• strip [n] citations, URLs/DOIs\n• drop trailing references section\n• expand e.g./i.e./et al.\nChunk text ~3500 chars (hard-split oversized)\ngpt-4o-mini polish (verbatim)\n→ status: review (pause)"]
+        Ingest["ingest_book\n─────────────────\nPyMuPDF block/span analysis\n• detect body font size\n• skip headers / footers\n• skip page numbers\n• skip footnotes\n• rejoin hyphenated breaks\n• format headings for TTS\nHeuristic cleanup\n• NFKC / ligatures\n• strip Project Gutenberg header/license\n• strip leading table of contents / front matter\n• strip [n] citations, URLs/DOIs\n• drop trailing references section\n• expand e.g./i.e./et al.\nScanned-PDF check\n• too little text for the page count\n  (<200 ch/page or <1500 total)\n  → log warning (likely needs OCR)\nChunk text ~3500 chars (hard-split oversized)\ngpt-4o-mini polish (verbatim)\n→ status: review (pause)"]
 
-        Review["Admin review\n─────────────\nGET /books/{id}/segments\nedit segments if needed\nPOST /books/{id}/synthesize"]
+        Review["Admin review\n─────────────\nGET /books/{id}/segments\n⚠ warn if PDF looks scanned\n  (no usable text layer)\nedit segments if needed\nPOST /books/{id}/synthesize"]
         Ingest -->|"status: review"| Review
         Review -->|"approve → Celery group"| Synth
 
@@ -31,7 +31,7 @@ flowchart TD
     Finalize --> DB
 
     DB -->|"poll every 3s"| Frontend
-    Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nReview modal + Approve\nEdit modal (+ narration\ninstructions) + Suggest"]
+    Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nReview modal + Approve\n(scanned-PDF warning banner)\nEdit modal (+ narration\ninstructions) + Suggest"]
     Frontend -->|"GET /api/audio/{id}\n→ 302 to signed R2 URL\n(1 hr expiry)"| R2
     R2["Cloudflare R2\n─────────────\nPrivate bucket\nSigned URLs\nNo egress fees"]
     R2 -->|"Audio stream\n(range requests)"| Player["Audio Player\n─────────────\nSegment pills\n±15s skip\nOverall progress"]
@@ -46,6 +46,21 @@ Book:    pending → processing → review → synthesizing → complete
 Segment: pending → processing → ready
                               ↘ error
 ```
+
+## Scanned / image PDFs
+
+PDFs without a real text layer (scans, photographed pages) extract to almost
+nothing, which would otherwise synthesize to near-silence. Ingestion measures
+the extracted text against the page count (`looks_scanned`): below ~200
+chars/page, or under 1500 chars total, the book is treated as likely scanned.
+It still lands in **review** rather than failing — the worker logs a warning and
+the review modal shows a banner (mirroring the same threshold) telling the admin
+the PDF probably needs OCR and should not be approved.
+
+The `scripts/preview_extract.py` diagnostic reports chars/page and the same
+`SCANNED — needs OCR` note, alongside per-segment quality flags
+(`GIBBERISH`, `SYMBOL-HEAVY`, `OCR-SPACING`, `GUTENBERG-RESIDUE`, residual
+citations/URLs) for spot-checking extraction before synthesis.
 
 ## Services
 
