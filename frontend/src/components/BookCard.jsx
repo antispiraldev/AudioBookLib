@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { deleteBook, retryBook, updateBook } from "../api";
 import EditModal from "./EditModal";
+import s from "./BookCard.module.css";
 
 const PALETTE = [
   "#7c6af7", "#5b8af5", "#4caf82", "#e07c5b",
@@ -21,16 +22,27 @@ const STATUS_LABEL = {
 
 export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, onUpdated }) {
   const [showEdit, setShowEdit] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [retryError, setRetryError] = useState("");
 
-  const readySegments = book.segments.filter((s) => s.status === "ready").length;
-  const failedSegments = book.segments.filter((s) => s.status === "error").length;
+  const readySegments = book.segments.filter((seg) => seg.status === "ready").length;
+  const failedSegments = book.segments.filter((seg) => seg.status === "error").length;
   const total = book.segments.length;
   const progress = total > 0 ? readySegments / total : 0;
   const canPlay = book.status === "complete" || (book.status === "synthesizing" && readySegments > 0);
   const isStuck = book.status === "synthesizing" && failedSegments > 0;
+  const initial = (book.title || "?").trim().charAt(0).toUpperCase();
+
+  // Close the overflow menu on Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   async function handleDelete() {
+    setMenuOpen(false);
     if (!confirm(`Delete "${book.title}"?`)) return;
     await deleteBook(book.id);
     onDeleted(book.id);
@@ -47,6 +59,7 @@ export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, 
   }
 
   async function handleToggleHidden() {
+    setMenuOpen(false);
     setRetryError("");
     try {
       const updated = await updateBook(book.id, { hidden: !book.hidden });
@@ -59,78 +72,93 @@ export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, 
   return (
     <>
       <div
+        className={s.card}
         style={{
-          ...styles.card,
           outline: isPlaying ? `2px solid ${color(book.id)}` : "none",
           opacity: book.hidden ? 0.55 : 1,
         }}
       >
-        <div style={{ ...styles.cover, background: color(book.id) }}>
-          {book.hidden && <span style={styles.hiddenTag}>Hidden</span>}
-          {isPlaying && <span style={styles.playingDot}>▶</span>}
+        <div className={s.cover} style={{ background: color(book.id) }}>
+          {book.hidden && <span className={s.hiddenTag}>Hidden</span>}
+          {isPlaying ? <span className={s.playingDot}>▶</span> : initial}
         </div>
 
-        <div style={styles.body}>
-          <p style={styles.title} title={book.title}>{book.title}</p>
+        <div className={s.body}>
+          <p className={s.title} title={book.title}>{book.title}</p>
 
-          <p style={styles.author}>
-            {[book.author, book.year].filter(Boolean).join(" · ") || <span style={{ color: "var(--border)" }}>—</span>}
+          <p className={s.author}>
+            {[book.author, book.year].filter(Boolean).join(" · ") || <span className={s.dash}>—</span>}
           </p>
 
-          {book.genre && (
-            <span style={styles.genre}>{book.genre}</span>
-          )}
+          {book.genre && <span className={s.genre}>{book.genre}</span>}
 
-          {book.notes && (
-            <p style={styles.notes} title={book.notes}>{book.notes}</p>
-          )}
+          {book.notes && <p className={s.notes} title={book.notes}>{book.notes}</p>}
 
-          <div style={styles.statusRow}>
-            <span style={{ ...styles.badge, color: book.status === "error" ? "var(--danger)" : "var(--text-muted)" }}>
+          <div className={s.statusRow}>
+            <span className={`${s.badge} ${book.status === "error" ? s.badgeError : ""}`}>
               {STATUS_LABEL[book.status] || book.status}
             </span>
             {book.status === "synthesizing" && total > 0 && (
-              <span style={styles.count}>{readySegments}/{total}</span>
+              <span className={s.count}>{readySegments}/{total}</span>
             )}
             {book.status === "error" && total > 0 && (
-              <span style={{ ...styles.count, color: "var(--danger)" }}>
-                {failedSegments}/{total} failed
-              </span>
+              <span className={`${s.count} ${s.countError}`}>{failedSegments}/{total} failed</span>
             )}
           </div>
 
           {book.status === "synthesizing" && total > 0 && (
-            <div style={styles.progressTrack}>
-              <div style={{ ...styles.progressBar, width: `${progress * 100}%` }} />
+            <div className={s.progressTrack}>
+              <div className={s.progressBar} style={{ width: `${progress * 100}%` }} />
             </div>
           )}
 
-          {retryError && <p style={styles.errorMsg}>{retryError}</p>}
+          {retryError && <p className={s.errorMsg}>{retryError}</p>}
 
-          <div style={styles.actions}>
+          <div className={s.actions}>
             {canPlay && (
-              <button style={styles.playBtn} onClick={() => onPlay(book)}>
+              <button className={s.playBtn} onClick={() => onPlay(book)}>
                 {isPlaying ? "Playing" : "Play"}
               </button>
             )}
             {isAdmin && book.status === "error" && (
-              <button style={styles.retryBtn} onClick={handleRetry}>Retry</button>
+              <button className={s.retryBtn} onClick={handleRetry}>Retry</button>
             )}
             {isAdmin && isStuck && (
-              <button style={styles.retryBtn} onClick={handleRetry}>Refresh</button>
+              <button className={s.retryBtn} onClick={handleRetry}>Refresh</button>
             )}
+
             {isAdmin && (
-              <>
+              <div className={s.menuWrap}>
                 <button
-                  style={styles.retryBtn}
-                  onClick={handleToggleHidden}
-                  title={book.hidden ? "Make visible to everyone" : "Hide from public listing"}
+                  className={s.menuBtn}
+                  data-open={menuOpen}
+                  aria-label="More actions"
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen((o) => !o)}
                 >
-                  {book.hidden ? "Show" : "Hide"}
+                  ⋯
                 </button>
-                <button style={styles.iconBtn} onClick={() => setShowEdit(true)} title="Edit">✏</button>
-                <button style={styles.deleteBtn} onClick={handleDelete} title="Delete">✕</button>
-              </>
+                {menuOpen && (
+                  <>
+                    <div className={s.backdrop} onClick={() => setMenuOpen(false)} />
+                    <div className={s.menu} role="menu">
+                      <button className={s.menuItem} role="menuitem" onClick={handleToggleHidden}>
+                        <span className={s.menuIcon}>{book.hidden ? "◉" : "◌"}</span>
+                        {book.hidden ? "Show" : "Hide"}
+                      </button>
+                      <button className={s.menuItem} role="menuitem" onClick={() => { setMenuOpen(false); setShowEdit(true); }}>
+                        <span className={s.menuIcon}>✎</span>
+                        Edit
+                      </button>
+                      <button className={`${s.menuItem} ${s.menuItemDanger}`} role="menuitem" onClick={handleDelete}>
+                        <span className={s.menuIcon}>🗑</span>
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -146,150 +174,3 @@ export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, 
     </>
   );
 }
-
-const styles = {
-  card: {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius)",
-    overflow: "hidden",
-    display: "flex",
-    flexDirection: "column",
-    transition: "outline 0.15s",
-  },
-  cover: {
-    position: "relative",
-    height: 140,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  playingDot: {
-    fontSize: 28,
-    color: "rgba(255,255,255,0.9)",
-  },
-  hiddenTag: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    fontSize: 10,
-    fontWeight: 600,
-    letterSpacing: "0.3px",
-    textTransform: "uppercase",
-    color: "#fff",
-    background: "rgba(0,0,0,0.55)",
-    borderRadius: 4,
-    padding: "2px 6px",
-  },
-  body: {
-    padding: "14px 16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: 3,
-    flex: 1,
-  },
-  title: {
-    fontWeight: 600,
-    fontSize: 14,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
-  author: {
-    fontSize: 12,
-    color: "var(--text-muted)",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
-  genre: {
-    display: "inline-block",
-    fontSize: 10,
-    fontWeight: 500,
-    background: "var(--surface2)",
-    border: "1px solid var(--border)",
-    color: "var(--text-muted)",
-    borderRadius: 4,
-    padding: "2px 6px",
-    alignSelf: "flex-start",
-    marginTop: 1,
-  },
-  notes: {
-    fontSize: 11,
-    color: "var(--text-muted)",
-    fontStyle: "italic",
-    marginTop: 1,
-    lineHeight: 1.4,
-  },
-  statusRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 4,
-  },
-  badge: {
-    fontSize: 11,
-  },
-  count: {
-    fontSize: 11,
-    color: "var(--text-muted)",
-  },
-  progressTrack: {
-    height: 3,
-    background: "var(--border)",
-    borderRadius: 2,
-    overflow: "hidden",
-    marginTop: 2,
-  },
-  progressBar: {
-    height: "100%",
-    background: "var(--accent)",
-    transition: "width 0.5s ease",
-  },
-  errorMsg: {
-    fontSize: 11,
-    color: "var(--danger)",
-    marginTop: 2,
-    wordBreak: "break-word",
-  },
-  actions: {
-    display: "flex",
-    gap: 5,
-    marginTop: 8,
-    alignItems: "center",
-  },
-  playBtn: {
-    background: "var(--accent)",
-    color: "#fff",
-    borderRadius: 5,
-    padding: "5px 12px",
-    fontSize: 12,
-    fontWeight: 500,
-  },
-  retryBtn: {
-    background: "transparent",
-    border: "1px solid var(--border)",
-    color: "var(--text-muted)",
-    borderRadius: 5,
-    padding: "5px 10px",
-    fontSize: 12,
-  },
-  iconBtn: {
-    marginLeft: "auto",
-    background: "transparent",
-    color: "var(--text-muted)",
-    fontSize: 13,
-    padding: "4px 6px",
-    borderRadius: 4,
-    border: "none",
-  },
-  deleteBtn: {
-    background: "transparent",
-    color: "var(--text-muted)",
-    fontSize: 13,
-    padding: "4px 6px",
-    borderRadius: 4,
-    border: "none",
-  },
-};

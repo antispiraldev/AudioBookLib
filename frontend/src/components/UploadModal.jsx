@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { uploadBook } from "../api";
+import s from "./Modal.module.css";
 
 export default function UploadModal({ onClose, onUploaded }) {
   const [title, setTitle] = useState("");
@@ -30,15 +31,12 @@ export default function UploadModal({ onClose, onUploaded }) {
   }
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h2 style={styles.heading}>Add Book</h2>
-        <form onSubmit={handleSubmit} style={styles.form}>
+    <div className={s.overlay} onClick={onClose}>
+      <div className={s.modal} onClick={(e) => e.stopPropagation()}>
+        <h2 className={s.heading}>Add Book</h2>
+        <form onSubmit={handleSubmit} className={s.form}>
           <div
-            style={{
-              ...styles.dropzone,
-              borderColor: file ? "var(--accent)" : "var(--border)",
-            }}
+            className={`${s.dropzone} ${file ? s.dropzoneActive : ""}`}
             onClick={() => inputRef.current.click()}
           >
             <input
@@ -55,35 +53,35 @@ export default function UploadModal({ onClose, onUploaded }) {
               }}
             />
             {file ? (
-              <span style={{ color: "var(--accent)" }}>{file.name}</span>
+              <span className={s.fileName}>{file.name}</span>
             ) : (
-              <span style={{ color: "var(--text-muted)" }}>Click to select a PDF</span>
+              <span className={s.placeholder}>Click to select a PDF</span>
             )}
           </div>
 
           <input
-            style={styles.input}
+            className={s.input}
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
           />
           <input
-            style={styles.input}
+            className={s.input}
             placeholder="Author (optional)"
             value={author}
             onChange={(e) => setAuthor(e.target.value)}
           />
 
-          {error && <p style={{ color: "var(--danger)", fontSize: 13 }}>{error}</p>}
+          {error && <p className={s.errorText}>{error}</p>}
 
-          <div style={styles.actions}>
-            <button type="button" style={styles.cancelBtn} onClick={onClose}>
+          <div className={s.actions}>
+            <button type="button" className={s.cancelBtn} onClick={onClose}>
               Cancel
             </button>
             <button
               type="submit"
-              style={{ ...styles.submitBtn, opacity: loading ? 0.6 : 1 }}
+              className={s.submitBtn}
               disabled={loading || !file || !title.trim()}
             >
               {loading ? "Uploading…" : "Upload & Generate"}
@@ -94,74 +92,3 @@ export default function UploadModal({ onClose, onUploaded }) {
     </div>
   );
 }
-
-const styles = {
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.7)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 100,
-  },
-  modal: {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius)",
-    padding: 28,
-    width: 420,
-    maxWidth: "90vw",
-  },
-  heading: {
-    fontSize: 18,
-    fontWeight: 600,
-    marginBottom: 20,
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-  },
-  dropzone: {
-    border: "2px dashed",
-    borderRadius: "var(--radius)",
-    padding: "20px 16px",
-    textAlign: "center",
-    cursor: "pointer",
-    fontSize: 14,
-    transition: "border-color 0.2s",
-  },
-  input: {
-    background: "var(--surface2)",
-    border: "1px solid var(--border)",
-    borderRadius: 6,
-    padding: "10px 12px",
-    color: "var(--text)",
-    fontSize: 14,
-    outline: "none",
-  },
-  actions: {
-    display: "flex",
-    gap: 8,
-    justifyContent: "flex-end",
-    marginTop: 4,
-  },
-  cancelBtn: {
-    background: "transparent",
-    border: "1px solid var(--border)",
-    color: "var(--text-muted)",
-    borderRadius: 6,
-    padding: "8px 16px",
-    fontSize: 14,
-  },
-  submitBtn: {
-    background: "var(--accent)",
-    color: "#fff",
-    borderRadius: 6,
-    padding: "8px 18px",
-    fontSize: 14,
-    fontWeight: 500,
-    transition: "opacity 0.2s",
-  },
-};
