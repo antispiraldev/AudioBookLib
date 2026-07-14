@@ -1,0 +1,407 @@
+/* ---- Bottom bar (shared shell) ---- */
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+}
+
+/* Cover thumbnail */
+.cover {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  color: #fff;
+  border: none;
+  padding: 0;
+}
+
+/* Track meta (title / author · chapter) */
+.meta {
+  min-width: 0;
+  flex: 0 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Desktop control cluster (transport + seek + extras) */
+.barMain {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Generic round icon button */
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  transition: background 0.15s, color 0.15s, opacity 0.15s;
+}
+.iconBtn:hover:not(:disabled) {
+  background: var(--surface2);
+}
+.iconBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.iconBtn:focus-visible,
+.playBtn:focus-visible,
+.chip:focus-visible,
+.cover:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Skip buttons show a small "15" label over the arc icon */
+.skip {
+  position: relative;
+}
+.skipNum {
+  position: absolute;
+  font-size: 8px;
+  font-weight: 700;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.playBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+  transition: transform 0.1s ease, background 0.15s;
+}
+.playBtn:hover {
+  background: #fff;
+}
+.playBtn:active {
+  transform: scale(0.94);
+}
+
+/* Seek row: elapsed | slider | total */
+.seekRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.time {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  min-width: 38px;
+}
+.timeEnd {
+  text-align: right;
+}
+
+/* Range slider */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  cursor: pointer;
+  outline: none;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  background: var(--accent);
+  border: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.slider::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* A slider whose "filled" portion is tinted via a background gradient
+   driven by the --fill custom property (0..100). */
+.slider.filled {
+  background: linear-gradient(
+    to right,
+    var(--accent) 0%,
+    var(--accent) calc(var(--fill, 0) * 1%),
+    var(--border) calc(var(--fill, 0) * 1%),
+    var(--border) 100%
+  );
+}
+
+/* Extras: speed + chapters + close */
+.extras {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.chip:hover,
+.chip[data-active="true"] {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+/* Mobile-only quick controls in the mini bar */
+.miniControls {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ---- Chapters popover (desktop) ---- */
+.popover {
+  position: fixed;
+  right: 20px;
+  bottom: 76px;
+  z-index: 60;
+  width: 280px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* ---- Chapter list (shared by popover + sheet) ---- */
+.chapterItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  font-size: 14px;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+}
+.chapterItem:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+.chapterItem[data-active="true"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+.chapterNum {
+  flex-shrink: 0;
+  width: 24px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  opacity: 0.7;
+}
+
+/* ---- Full-screen "Now Playing" sheet (mobile) ---- */
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px calc(28px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  animation: sheetUp 0.25s ease;
+}
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.sheetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.sheetHeader span {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.sheetCover {
+  width: min(60vw, 240px);
+  aspect-ratio: 1;
+  margin: 4vh auto 0;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  font-weight: 700;
+  color: #fff;
+}
+.sheetMeta {
+  text-align: center;
+  margin: 24px 0 8px;
+}
+.sheetTitle {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.sheetSub {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.sheetSeek {
+  margin-top: auto;
+}
+.sheetControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 24px 0 8px;
+}
+.sheetControls .iconBtn {
+  width: 52px;
+  height: 52px;
+}
+.sheetControls .playBtn {
+  width: 68px;
+  height: 68px;
+}
+.sheetControls .playBtn svg {
+  width: 30px;
+  height: 30px;
+}
+.sheetFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.sheetChapters {
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  overflow-y: auto;
+  max-height: 30vh;
+}
+
+/* Overall (book-level) progress bar */
+.overall {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+  margin-top: 4px;
+}
+.overallFill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+/* ---- Responsive: hide desktop cluster on mobile, show mini controls ---- */
+@media (max-width: 640px) {
+  .bar {
+    gap: 12px;
+  }
+  .barMain {
+    display: none;
+  }
+  .meta {
+    flex: 1;
+  }
+  .miniControls {
+    display: flex;
+  }
+  .popover {
+    display: none;
+  }
+}
+
+/* On wider screens the sheet never shows even if state lingers */
+@media (min-width: 641px) {
+  .sheet {
+    display: none;
+  }
+}
