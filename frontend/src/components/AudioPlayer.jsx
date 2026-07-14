@@ -67,7 +67,7 @@ const SkipIcon = ({ dir }) => (
   </svg>
 );
 
-export default function AudioPlayer({ book, onClose }) {
+export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
   const audioRef = useRef(null);
 
   // Resume position for the initial book (chapter + offset).
@@ -75,7 +75,6 @@ export default function AudioPlayer({ book, onClose }) {
   if (resumeRef.current === null) resumeRef.current = initialResume(book);
 
   const [segIdx, setSegIdx] = useState(resumeRef.current.idx);
-  const [playing, setPlaying] = useState(true);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [rate, setRate] = useState(() => loadSpeed());
