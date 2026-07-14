@@ -118,6 +118,31 @@
   word-break: break-word;
 }
 
+/* Listening progress (resume) */
+.listenRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.listenTrack {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.listenBar {
+  height: 100%;
+  background: var(--accent);
+}
+.listenPct {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
 /* Action row */
 .actions {
   display: flex;

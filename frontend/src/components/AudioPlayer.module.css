@@ -343,7 +343,62 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-top: 8px;
+}
+.sheetFooterBtns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- Sleep-timer menu (renders above both the bar and the sheet) ---- */
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 89;
+}
+.sleepMenu {
+  position: fixed;
+  left: 50%;
+  bottom: 88px;
+  transform: translateX(-50%);
+  z-index: 90;
+  width: 220px;
+  max-width: calc(100vw - 32px);
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+.sleepMenuTitle {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  padding: 6px 10px 8px;
+}
+.sleepItem {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  font-size: 14px;
+  text-align: left;
+}
+.sleepItem:hover {
+  background: var(--surface2);
+}
+.sleepItem[data-active="true"] {
+  color: var(--accent);
+  font-weight: 600;
 }
 .sheetChapters {
   margin-top: 16px;

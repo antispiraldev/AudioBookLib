@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { deleteBook, retryBook, updateBook } from "../api";
+import { loadProgress } from "../lib/playback";
 import EditModal from "./EditModal";
 import s from "./BookCard.module.css";
 
@@ -32,6 +33,12 @@ export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, 
   const canPlay = book.status === "complete" || (book.status === "synthesizing" && readySegments > 0);
   const isStuck = book.status === "synthesizing" && failedSegments > 0;
   const initial = (book.title || "?").trim().charAt(0).toUpperCase();
+
+  // Saved listening progress (read at render; refreshes when the player closes
+  // and App re-renders). Only show a meaningful, in-progress fraction.
+  const listenFrac = canPlay ? loadProgress(book.id)?.fraction ?? 0 : 0;
+  const started = listenFrac > 0.01 && listenFrac < 0.995;
+  const playLabel = isPlaying ? "Playing" : started ? "Resume" : "Play";
 
   // Close the overflow menu on Escape.
   useEffect(() => {
@@ -112,12 +119,22 @@ export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, 
             </div>
           )}
 
+          {/* Listening progress (resume) */}
+          {started && !isPlaying && (
+            <div className={s.listenRow}>
+              <div className={s.listenTrack}>
+                <div className={s.listenBar} style={{ width: `${listenFrac * 100}%` }} />
+              </div>
+              <span className={s.listenPct}>{Math.round(listenFrac * 100)}%</span>
+            </div>
+          )}
+
           {retryError && <p className={s.errorMsg}>{retryError}</p>}
 
           <div className={s.actions}>
             {canPlay && (
               <button className={s.playBtn} onClick={() => onPlay(book)}>
-                {isPlaying ? "Playing" : "Play"}
+                {playLabel}
               </button>
             )}
             {isAdmin && book.status === "error" && (
