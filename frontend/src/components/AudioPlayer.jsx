@@ -28,9 +28,24 @@ const Next = () => (<svg {...ic}><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z" /></sv
 const ChevronUp = (props) => (<svg {...ic} {...props}><path d="M12 8l-6 6 1.4 1.4L12 10.8l4.6 4.6L18 14z" /></svg>);
 const Close = () => (<svg {...ic}><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z" /></svg>);
 const List = () => (<svg {...ic} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>);
-// Circular arrow used for skip-back / skip-forward, mirrored for direction.
-const Rewind = () => (<svg {...ic} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4a8 8 0 1 1-7.5 5.3" /><path d="M3 4v5h5" /></svg>);
-const Forward = () => (<svg {...ic} style={{ transform: "scaleX(-1)" }} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4a8 8 0 1 1-7.5 5.3" /><path d="M3 4v5h5" /></svg>);
+// Circular arrow with the skip seconds baked into the SVG as <text>, so the
+// "15" stays centered on every browser. (A separate absolutely-positioned
+// label drifted off-centre on iOS Safari.) The arrow is mirrored for forward.
+const SkipIcon = ({ dir }) => (
+  <svg {...ic} fill="none" aria-hidden="true">
+    <g
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      transform={dir === "fwd" ? "matrix(-1,0,0,1,24,0)" : undefined}
+    >
+      <path d="M11 4a8 8 0 1 1-7.5 5.3" />
+      <path d="M3 4v5h5" />
+    </g>
+    <text x="12" y="15" textAnchor="middle" fontSize="8" fontWeight="700" fill="currentColor">15</text>
+  </svg>
+);
 
 export default function AudioPlayer({ book, onClose }) {
   const audioRef = useRef(null);
@@ -99,8 +114,15 @@ export default function AudioPlayer({ book, onClose }) {
   }, [book.id, segIdx, readySegs.length, hasPrev, hasNext]);
 
   function onEnded() {
-    if (hasNext) setSegIdx((i) => i + 1);
-    else setPlaying(false);
+    // iOS Safari fires a `pause` event when playback reaches the end, which
+    // flips `playing` to false. Re-assert the intent to keep playing so the
+    // load-next-chapter effect auto-plays instead of stalling paused.
+    if (hasNext) {
+      setPlaying(true);
+      setSegIdx((i) => i + 1);
+    } else {
+      setPlaying(false);
+    }
   }
 
   function onTimeUpdate() {
@@ -154,16 +176,16 @@ export default function AudioPlayer({ book, onClose }) {
   // them each render — important so dragging the seek slider keeps focus.
   const transport = () => (
     <div className={s.transport}>
-      <button className={`${s.iconBtn} ${s.skip}`} onClick={skipBack} title="Back 15s" aria-label="Back 15 seconds">
-        <Rewind /><span className={s.skipNum}>15</span>
+      <button className={s.iconBtn} onClick={skipBack} title="Back 15s" aria-label="Back 15 seconds">
+        <SkipIcon dir="back" />
       </button>
       <button className={s.iconBtn} onClick={goPrev} disabled={!hasPrev} title="Previous chapter" aria-label="Previous chapter"><Prev /></button>
       <button className={s.playBtn} onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
         {playing ? <Pause /> : <Play />}
       </button>
       <button className={s.iconBtn} onClick={goNext} disabled={!hasNext} title="Next chapter" aria-label="Next chapter"><Next /></button>
-      <button className={`${s.iconBtn} ${s.skip}`} onClick={skipForward} title="Forward 15s" aria-label="Forward 15 seconds">
-        <Forward /><span className={s.skipNum}>15</span>
+      <button className={s.iconBtn} onClick={skipForward} title="Forward 15s" aria-label="Forward 15 seconds">
+        <SkipIcon dir="fwd" />
       </button>
     </div>
   );

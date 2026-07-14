@@ -97,19 +97,6 @@
   outline-offset: 2px;
 }
 
-/* Skip buttons show a small "15" label over the arc icon */
-.skip {
-  position: relative;
-}
-.skipNum {
-  position: absolute;
-  font-size: 8px;
-  font-weight: 700;
-  top: 52%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
 .playBtn {
   display: flex;
   align-items: center;
