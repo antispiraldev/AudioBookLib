@@ -12,6 +12,7 @@ export default function App() {
   const [books, setBooks] = useState([]);
   const [showUpload, setShowUpload] = useState(false);
   const [activeBook, setActiveBook] = useState(null);
+  const [playing, setPlaying] = useState(false);
   const [genre, setGenre] = useState(null);
   const [query, setQuery] = useState("");
   const [user, setUser] = useState(null);
@@ -74,7 +75,25 @@ export default function App() {
 
   function handleDeleted(id) {
     setBooks((prev) => prev.filter((b) => b.id !== id));
-    if (activeBook?.id === id) setActiveBook(null);
+    if (activeBook?.id === id) {
+      setActiveBook(null);
+      setPlaying(false);
+    }
+  }
+
+  // Tapping a card selects + plays it; tapping the active card toggles play/pause.
+  function handleCardTap(book) {
+    if (activeBook?.id === book.id) {
+      setPlaying((p) => !p);
+    } else {
+      setActiveBook(book);
+      setPlaying(true);
+    }
+  }
+
+  function closePlayer() {
+    setActiveBook(null);
+    setPlaying(false);
   }
 
   function handleUpdated(updated) {
@@ -146,8 +165,9 @@ export default function App() {
                   key={book.id}
                   book={book}
                   isAdmin={isAdmin}
-                  isPlaying={activeBook?.id === book.id}
-                  onPlay={setActiveBook}
+                  isActive={activeBook?.id === book.id}
+                  playing={playing}
+                  onPlay={handleCardTap}
                   onDeleted={handleDeleted}
                   onUpdated={handleUpdated}
                 />
@@ -165,7 +185,12 @@ export default function App() {
       )}
 
       {activeBook && (
-        <AudioPlayer book={activeBook} onClose={() => setActiveBook(null)} />
+        <AudioPlayer
+          book={activeBook}
+          playing={playing}
+          setPlaying={setPlaying}
+          onClose={closePlayer}
+        />
       )}
     </div>
   );
