@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { deleteBook, retryBook, updateBook } from "../api";
+import { loadProgress } from "../lib/playback";
 import EditModal from "./EditModal";
 import ReviewModal from "./ReviewModal";
 import s from "./BookCard.module.css";
@@ -22,7 +23,10 @@ const STATUS_LABEL = {
   error: "Error",
 };
 
-export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, onUpdated }) {
+const PlayIc = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>);
+const PauseIc = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z" /></svg>);
+
+export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onDeleted, onUpdated }) {
   const [showEdit, setShowEdit] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -35,6 +39,13 @@ export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, 
   const canPlay = book.status === "complete" || (book.status === "synthesizing" && readySegments > 0);
   const isStuck = book.status === "synthesizing" && failedSegments > 0;
   const initial = (book.title || "?").trim().charAt(0).toUpperCase();
+
+  // Saved listening progress (read at render; refreshes when the player closes
+  // and App re-renders). Only show a meaningful, in-progress fraction.
+  const listenFrac = canPlay ? loadProgress(book.id)?.fraction ?? 0 : 0;
+  const started = listenFrac > 0.01 && listenFrac < 0.995;
+  // Tapping the card plays it; tapping the active card toggles play/pause.
+  const actionLabel = isActive ? (playing ? "Pause" : "Play") : started ? "Resume" : "Play";
 
   // Close the overflow menu on Escape.
   useEffect(() => {
@@ -77,14 +88,31 @@ export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, 
       <div
         className={s.card}
         style={{
-          outline: isPlaying ? `2px solid ${color(book.id)}` : "none",
+          outline: isActive ? `2px solid ${color(book.id)}` : "none",
           opacity: book.hidden ? 0.55 : 1,
         }}
       >
-        <div className={s.cover} style={{ background: color(book.id) }}>
+        <button
+          type="button"
+          className={s.cover}
+          style={{ background: color(book.id) }}
+          disabled={!canPlay}
+          onClick={() => onPlay(book)}
+          aria-label={
+            isActive ? (playing ? `Pause ${book.title}` : `Play ${book.title}`)
+            : canPlay ? `Play ${book.title}` : book.title
+          }
+        >
           {book.hidden && <span className={s.hiddenTag}>Hidden</span>}
-          {isPlaying ? <span className={s.playingDot}>▶</span> : initial}
-        </div>
+          {isActive ? (
+            <span className={s.coverIcon}>{playing ? <PauseIc /> : <PlayIc />}</span>
+          ) : (
+            <>
+              {initial}
+              {canPlay && <span className={s.coverHover}><PlayIc /></span>}
+            </>
+          )}
+        </button>
 
         <div className={s.body}>
           <p className={s.title} title={book.title}>{book.title}</p>
@@ -115,12 +143,22 @@ export default function BookCard({ book, isAdmin, isPlaying, onPlay, onDeleted, 
             </div>
           )}
 
+          {/* Listening progress (resume) */}
+          {started && !isActive && (
+            <div className={s.listenRow}>
+              <div className={s.listenTrack}>
+                <div className={s.listenBar} style={{ width: `${listenFrac * 100}%` }} />
+              </div>
+              <span className={s.listenPct}>{Math.round(listenFrac * 100)}%</span>
+            </div>
+          )}
+
           {retryError && <p className={s.errorMsg}>{retryError}</p>}
 
           <div className={s.actions}>
             {canPlay && (
               <button className={s.playBtn} onClick={() => onPlay(book)}>
-                {isPlaying ? "Playing" : "Play"}
+                {actionLabel}
               </button>
             )}
             {isAdmin && book.status === "review" && (
