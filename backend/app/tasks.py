@@ -35,7 +35,7 @@ def ingest_book(book_id: int) -> None:
             page_count, chunks = extract_text_chunks(pdf_path)
         book.page_count = page_count
 
-        total_chars = sum(len(c) for c in chunks)
+        total_chars = sum(len(c.text) for c in chunks)
         if looks_scanned(page_count, total_chars):
             # No usable text layer — a scanned/image PDF. Land it in review so
             # the admin sees the warning instead of synthesizing near-silence.
@@ -44,8 +44,13 @@ def ingest_book(book_id: int) -> None:
                 book_id, total_chars, page_count,
             )
 
-        for i, text in enumerate(chunks):
-            db.add(Segment(book_id=book_id, order=i, text=llm_clean(text)))
+        for i, chunk in enumerate(chunks):
+            db.add(Segment(
+                book_id=book_id,
+                order=i,
+                text=llm_clean(chunk.text),
+                chapter_title=chunk.chapter_title,
+            ))
         db.commit()
 
         book.status = "review"

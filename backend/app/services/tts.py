@@ -19,10 +19,10 @@ def _get_client() -> OpenAI:
 
 def synthesize(text: str, output_path: str, instructions: str | None = None) -> None:
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    response = _get_client().audio.speech.create(
+    with _get_client().audio.speech.with_streaming_response.create(
         model=MODEL,
         voice=VOICE,
         input=text,
         instructions=instructions or DEFAULT_INSTRUCTIONS,
-    )
-    response.stream_to_file(output_path)
+    ) as response:
+        response.stream_to_file(output_path)

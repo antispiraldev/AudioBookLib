@@ -13,6 +13,16 @@ export default function AudioPlayer({ book, onClose }) {
   const readySegs = book.segments.filter((s) => s.status === "ready");
   const seg = readySegs[segIdx];
 
+  // Chapter starts among ready segments -> [{ title, idx }]
+  const chapters = readySegs
+    .map((s, i) => ({ title: s.chapter_title, idx: i }))
+    .filter((c) => c.title);
+  let currentChapter = null;
+  for (const c of chapters) {
+    if (c.idx <= segIdx) currentChapter = c;
+    else break;
+  }
+
   useEffect(() => {
     setSegIdx(0);
     setPlaying(true);
@@ -96,8 +106,11 @@ export default function AudioPlayer({ book, onClose }) {
               background: i === segIdx ? "var(--accent)" : "var(--surface2)",
               color: i === segIdx ? "#fff" : "var(--text-muted)",
               border: i === segIdx ? "1px solid var(--accent)" : "1px solid var(--border)",
+              // subtle marker on segments that start a chapter
+              boxShadow: s.chapter_title ? "inset 2px 0 0 var(--accent)" : "none",
             }}
             onClick={() => setSegIdx(i)}
+            title={s.chapter_title || undefined}
           >
             {i + 1}
           </button>
@@ -107,11 +120,32 @@ export default function AudioPlayer({ book, onClose }) {
       {/* Info */}
       <div style={styles.info}>
         <p style={styles.title}>{book.title}</p>
-        <p style={styles.sub}>
-          {book.author ? `${book.author} · ` : ""}
+        <p style={styles.sub} title={currentChapter?.title || undefined}>
+          {currentChapter
+            ? `${currentChapter.title} · `
+            : book.author
+            ? `${book.author} · `
+            : ""}
           {segIdx + 1} / {readySegs.length}
         </p>
       </div>
+
+      {/* Chapter navigation */}
+      {chapters.length > 0 && (
+        <select
+          style={styles.chapterSelect}
+          value={currentChapter ? currentChapter.idx : ""}
+          onChange={(e) => setSegIdx(Number(e.target.value))}
+          title="Jump to chapter"
+        >
+          {!currentChapter && <option value="">Chapters</option>}
+          {chapters.map((c) => (
+            <option key={c.idx} value={c.idx}>
+              {c.title.length > 48 ? c.title.slice(0, 48) + "…" : c.title}
+            </option>
+          ))}
+        </select>
+      )}
 
       {/* Controls */}
       <div style={styles.controls}>
@@ -205,6 +239,20 @@ const styles = {
     fontSize: 11,
     color: "var(--text-muted)",
     marginTop: 2,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  chapterSelect: {
+    flexShrink: 0,
+    maxWidth: 150,
+    background: "var(--surface2)",
+    color: "var(--text-muted)",
+    border: "1px solid var(--border)",
+    borderRadius: 5,
+    fontSize: 11,
+    padding: "5px 6px",
+    cursor: "pointer",
   },
   controls: {
     display: "flex",

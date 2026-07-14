@@ -8,3 +8,4 @@ dist/
 *.db
 migration.sql
 backend/scripts/preview_out/
+tts_samples/

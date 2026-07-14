@@ -94,7 +94,11 @@ export default function ReviewModal({ book, onClose, onApproved }) {
           {segments?.map((seg) => {
             const dirty = drafts[seg.order] !== seg.text;
             return (
-              <div key={seg.order} style={styles.segment}>
+              <div key={seg.order}>
+                {seg.chapter_title && (
+                  <p style={styles.chapterMark}>{seg.chapter_title}</p>
+                )}
+              <div style={styles.segment}>
                 <div style={styles.segHead}>
                   <span style={styles.segNum}>#{seg.order + 1}</span>
                   <span style={styles.segStatus}>{seg.status}</span>
@@ -114,6 +118,7 @@ export default function ReviewModal({ book, onClose, onApproved }) {
                     {savingOrder === seg.order ? "Saving…" : "Save segment"}
                   </button>
                 )}
+              </div>
               </div>
             );
           })}
@@ -204,6 +209,14 @@ const styles = {
     borderRadius: 8,
     padding: 10,
     background: "var(--surface2)",
+  },
+  chapterMark: {
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    color: "var(--accent)",
+    margin: "6px 0 6px 2px",
   },
   segHead: {
     display: "flex",

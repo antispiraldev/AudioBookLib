@@ -76,22 +76,23 @@ def preview(pdf_path: str, summary: bool, use_llm: bool) -> dict:
 
     if use_llm:
         from app.services.clean import llm_clean
-        chunks = [llm_clean(c) for c in chunks]
+        chunks = [c._replace(text=llm_clean(c.text)) for c in chunks]
 
-    lengths = [len(c) for c in chunks]
+    lengths = [len(c.text) for c in chunks]
     n = len(chunks)
+    chapters = [c.chapter_title for c in chunks if c.chapter_title]
     flagged = []
     for i, c in enumerate(chunks):
-        f = flags_for(c, is_last=(i == n - 1))
+        f = flags_for(c.text, is_last=(i == n - 1))
         if f:
-            flagged.append((i, f, c))
+            flagged.append((i, f, c.text))
 
     name = os.path.basename(pdf_path)
     total_chars = sum(lengths)
     per_page = total_chars // page_count if page_count else total_chars
     scanned = looks_scanned(page_count, total_chars)
     print(f"\n=== {name} ===")
-    print(f"pages: {page_count}   segments: {n}   "
+    print(f"pages: {page_count}   segments: {n}   chapters: {len(chapters)}   "
           f"chars: total {total_chars:,}  "
           f"min {min(lengths) if lengths else 0}  "
           f"max {max(lengths) if lengths else 0}  "
@@ -100,6 +101,12 @@ def preview(pdf_path: str, summary: bool, use_llm: bool) -> dict:
     if scanned:
         print("  ⚠⚠ LIKELY SCANNED — no usable text layer, needs OCR")
     print(f"flagged: {len(flagged)}/{n}")
+    if chapters and not summary:
+        print("chapters:")
+        for t in chapters[:40]:
+            print(f"   {t[:70]}")
+        if len(chapters) > 40:
+            print(f"   ... and {len(chapters) - 40} more")
 
     if not summary:
         out_dir = os.path.join(os.path.dirname(__file__), "preview_out")
@@ -107,16 +114,18 @@ def preview(pdf_path: str, summary: bool, use_llm: bool) -> dict:
         out_path = os.path.join(out_dir, name.replace(".pdf", "") + ".txt")
         with open(out_path, "w") as fh:
             for i, c in enumerate(chunks):
-                f = flags_for(c, is_last=(i == n - 1))
+                f = flags_for(c.text, is_last=(i == n - 1))
                 tag = ("  ⚠ " + " ".join(f)) if f else ""
-                fh.write(f"\n----- segment {i} ({len(c)} chars){tag} -----\n{c}\n")
+                if c.chapter_title:
+                    fh.write(f"\n========== {c.chapter_title} ==========\n")
+                fh.write(f"\n----- segment {i} ({len(c.text)} chars){tag} -----\n{c.text}\n")
         print(f"dumped -> {os.path.relpath(out_path)}")
 
-        for i, f, c in flagged[:12]:
+        for i, f, ctext in flagged[:12]:
             print(f"\n  ⚠ seg {i}  {' '.join(f)}")
-            print("    " + re.sub(r"\s+", " ", c[:180]))
+            print("    " + re.sub(r"\s+", " ", ctext[:180]))
 
-    return {"name": name, "pages": page_count, "segments": n,
+    return {"name": name, "pages": page_count, "segments": n, "chapters": len(chapters),
             "flagged": len(flagged), "per_page": per_page, "scanned": scanned}
 
 
@@ -136,11 +145,11 @@ def main() -> None:
 
     if len(rows) > 1:
         print("\n\n=== SUMMARY ===")
-        print(f"{'book':<40} {'pages':>6} {'segs':>6} {'flagged':>8} {'ch/pg':>7}  note")
+        print(f"{'book':<40} {'pages':>6} {'segs':>6} {'chaps':>6} {'flagged':>8} {'ch/pg':>7}  note")
         for r in rows:
             note = "SCANNED — needs OCR" if r.get("scanned") else ""
             print(f"{r['name'][:40]:<40} {r['pages']:>6} {r['segments']:>6} "
-                  f"{r['flagged']:>8} {r.get('per_page', 0):>7}  {note}")
+                  f"{r.get('chapters', 0):>6} {r['flagged']:>8} {r.get('per_page', 0):>7}  {note}")
 
 
 if __name__ == "__main__":

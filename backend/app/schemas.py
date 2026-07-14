@@ -17,6 +17,7 @@ class SegmentOut(BaseModel):
     order: int
     status: str
     duration: Optional[float] = None
+    chapter_title: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -26,6 +27,7 @@ class SegmentText(BaseModel):
     order: int
     status: str
     text: str
+    chapter_title: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
