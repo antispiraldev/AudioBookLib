@@ -6,7 +6,8 @@ from celery import chord, group
 from .celery_app import celery
 from .database import SessionLocal
 from .models import Book, Segment
-from .services.pdf import extract_text_chunks
+from .services.clean import llm_clean
+from .services.pdf import extract_text_chunks, looks_scanned
 from .services.tts import synthesize
 from .services import storage
 
@@ -16,7 +17,12 @@ STORAGE_AUDIO = "storage/audio"
 
 
 @celery.task
-def ingest_and_synthesize(book_id: int) -> None:
+def ingest_book(book_id: int) -> None:
+    """Extract + clean text into segments, then pause at 'review'.
+
+    Synthesis is deliberately NOT started here — an admin reviews the cleaned
+    text and approves via POST /books/{id}/synthesize before we spend on TTS.
+    """
     db = SessionLocal()
     try:
         book = db.get(Book, book_id)
@@ -28,27 +34,32 @@ def ingest_and_synthesize(book_id: int) -> None:
         with storage.local_pdf(book.pdf_path) as pdf_path:
             page_count, chunks = extract_text_chunks(pdf_path)
         book.page_count = page_count
-        for i, text in enumerate(chunks):
-            db.add(Segment(book_id=book_id, order=i, text=text))
+
+        total_chars = sum(len(c.text) for c in chunks)
+        if looks_scanned(page_count, total_chars):
+            # No usable text layer — a scanned/image PDF. Land it in review so
+            # the admin sees the warning instead of synthesizing near-silence.
+            log.warning(
+                "Book %s looks scanned: %d chars across %d pages — likely needs OCR",
+                book_id, total_chars, page_count,
+            )
+
+        for i, chunk in enumerate(chunks):
+            db.add(Segment(
+                book_id=book_id,
+                order=i,
+                text=llm_clean(chunk.text),
+                chapter_title=chunk.chapter_title,
+            ))
         db.commit()
 
-        segment_ids = [
-            seg.id for seg in
-            db.query(Segment).filter_by(book_id=book_id).order_by(Segment.order).all()
-        ]
-        book.status = "synthesizing"
+        book.status = "review"
         db.commit()
     except Exception:
         log.exception("Text extraction failed for book %s", book_id)
         _set_error(db, book_id)
-        db.close()
-        return
     finally:
         db.close()
-
-    chord(
-        group(synthesize_segment.s(sid, book_id) for sid in segment_ids)
-    )(finalize_book.s(book_id))
 
 
 @celery.task
@@ -96,11 +107,14 @@ def synthesize_segment(segment_id: int, book_id: int) -> str:
         if seg.status == "ready":
             return "ready"
 
+        book = db.get(Book, book_id)
+        instructions = book.tts_instructions if book else None
+
         local_path = os.path.join(STORAGE_AUDIO, str(book_id), f"{seg.order:04d}.mp3")
         seg.status = "processing"
         db.commit()
 
-        synthesize(seg.text, local_path)
+        synthesize(seg.text, local_path, instructions=instructions)
 
         if storage.is_enabled():
             key = f"audio/{book_id}/{seg.order:04d}.mp3"

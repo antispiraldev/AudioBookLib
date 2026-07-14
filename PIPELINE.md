@@ -9,16 +9,19 @@ flowchart TD
 
     Upload -->|multipart/form-data| API
     API --> DB
-    API -->|ingest_and_synthesize.delay| Queue
+    API -->|ingest_book.delay| Queue
 
     Queue --> Ingest
 
     subgraph Worker ["Celery Worker (concurrency=5)"]
-        Ingest["ingest_and_synthesize\n─────────────────\nPyMuPDF block/span analysis\n• detect body font size\n• skip headers / footers\n• skip page numbers\n• skip footnotes\n• rejoin hyphenated breaks\n• format headings for TTS\nChunk text ~3500 chars"]
-        Ingest -->|"Celery group"| Synth
+        Ingest["ingest_book\n─────────────────\nPyMuPDF block/span analysis\n• detect body font size\n• skip headers / footers\n• skip page numbers\n• skip footnotes\n• rejoin hyphenated breaks\n• format headings for TTS\nHeuristic cleanup\n• NFKC / ligatures\n• strip Project Gutenberg header/license\n• strip leading table-of-contents block\n• strip [n] citations, URLs/DOIs\n• drop trailing references section\n• expand e.g./i.e./et al.\ndetect scanned PDFs (chars/page) → needs OCR\nChapter detection (regex + roman validation\n+ body-gap/dedup/longest-run filters)\nChunk ~1800 chars, chapter-aware\n(never crosses a chapter boundary;\nchapter_title on first segment)\ngpt-4o-mini polish (verbatim)\n→ status: review (pause)"]
+
+        Review["Admin review\n─────────────\nGET /books/{id}/segments\nedit segments if needed\nPOST /books/{id}/synthesize"]
+        Ingest -->|"status: review"| Review
+        Review -->|"approve → Celery group"| Synth
 
         subgraph Parallel ["Parallel segment tasks (up to 5)"]
-            Synth["synthesize_segment × N\n─────────────\nOpenAI tts-1-hd\nvoice: alloy\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
+            Synth["synthesize_segment × N\n─────────────\nOpenAI gpt-4o-mini-tts\nvoice: onyx\nper-book instructions\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
         end
 
         Synth -->|"chord callback"| Finalize
@@ -28,17 +31,17 @@ flowchart TD
     Finalize --> DB
 
     DB -->|"poll every 3s"| Frontend
-    Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nEdit modal + Suggest"]
+    Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nReview modal + Approve\nEdit modal (+ narration\ninstructions) + Suggest"]
     Frontend -->|"GET /api/audio/{id}\n→ 302 to signed R2 URL\n(1 hr expiry)"| R2
     R2["Cloudflare R2\n─────────────\nPrivate bucket\nSigned URLs\nNo egress fees"]
-    R2 -->|"Audio stream\n(range requests)"| Player["Audio Player\n─────────────\nSegment pills\n±15s skip\nOverall progress"]
+    R2 -->|"Audio stream\n(range requests)"| Player["Audio Player\n─────────────\nSegment pills\nChapter dropdown + jump\n±15s skip\nOverall progress"]
 ```
 
 ## Status flow
 
 ```
-Book:    pending → processing → synthesizing → complete
-                                             ↘ error
+Book:    pending → processing → review → synthesizing → complete
+                                      (admin approves)  ↘ error
 
 Segment: pending → processing → ready
                               ↘ error
@@ -53,8 +56,8 @@ Segment: pending → processing → ready
 | Redis           | Broker + result backend                           |
 | PostgreSQL      | Persistent metadata (Alembic migrations)          |
 | Cloudflare R2   | MP3 storage (private bucket, signed URLs)         |
-| OpenAI tts-1-hd | Audio synthesis                                   |
-| OpenAI gpt-4o-mini | Metadata suggestions                           |
+| OpenAI gpt-4o-mini-tts | Audio synthesis (per-book narration instructions) |
+| OpenAI gpt-4o-mini | Metadata suggestions + text cleanup polish     |
 | Google OAuth (Authlib) | Sign-in; admin role gates uploads/edits/synthesis |
 
 ## Hosting

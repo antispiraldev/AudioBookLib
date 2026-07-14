@@ -95,6 +95,21 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
   const color = coverColor(book.id);
   const initial = (book.title || "?").trim().charAt(0).toUpperCase();
 
+  // Real chapter starts (segments carrying a detected chapter_title). When a
+  // book has them, the chapter list navigates actual chapters; otherwise it
+  // falls back to one entry per audio segment ("part").
+  const chapterMarks = readySegs
+    .map((sg, i) => ({ title: sg.chapter_title, idx: i }))
+    .filter((m) => m.title);
+  let currentMark = null;
+  for (const m of chapterMarks) {
+    if (m.idx <= segIdx) currentMark = m;
+    else break;
+  }
+  const positionLabel = currentMark
+    ? currentMark.title
+    : `Part ${segIdx + 1} of ${readySegs.length}`;
+
   // Switching to a different book -> resume that book (mount is handled by the
   // lazy initial state above, so skip the first run).
   const firstRunRef = useRef(true);
@@ -189,7 +204,7 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
     navigator.mediaSession.metadata = new window.MediaMetadata({
       title: book.title || "Untitled",
       artist: book.author || "",
-      album: `Chapter ${segIdx + 1} of ${readySegs.length}`,
+      album: positionLabel,
     });
     const set = (action, handler) => {
       try { navigator.mediaSession.setActionHandler(action, handler); } catch {}
@@ -282,7 +297,7 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
   const overall = readySegs.length > 0
     ? ((segIdx + (duration > 0 ? current / duration : 0)) / readySegs.length) * 100
     : 0;
-  const subText = `${book.author ? `${book.author} · ` : ""}Chapter ${segIdx + 1} of ${readySegs.length}`;
+  const subText = `${book.author ? `${book.author} · ` : ""}${positionLabel}`;
   const speedLabel = `${rate}×`;
   const sleepChipLabel = sleep == null
     ? null
@@ -311,11 +326,11 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
       <button className={s.iconBtn} onClick={skipBack} title="Back 15s" aria-label="Back 15 seconds">
         <SkipIcon dir="back" />
       </button>
-      <button className={s.iconBtn} onClick={goPrev} disabled={!hasPrev} title="Previous chapter" aria-label="Previous chapter"><Prev /></button>
+      <button className={s.iconBtn} onClick={goPrev} disabled={!hasPrev} title="Previous part" aria-label="Previous part"><Prev /></button>
       <button className={s.playBtn} onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
         {playing ? <Pause /> : <Play />}
       </button>
-      <button className={s.iconBtn} onClick={goNext} disabled={!hasNext} title="Next chapter" aria-label="Next chapter"><Next /></button>
+      <button className={s.iconBtn} onClick={goNext} disabled={!hasNext} title="Next part" aria-label="Next part"><Next /></button>
       <button className={s.iconBtn} onClick={skipForward} title="Forward 15s" aria-label="Forward 15 seconds">
         <SkipIcon dir="fwd" />
       </button>
@@ -341,12 +356,25 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
   );
 
   const chapters = () =>
-    readySegs.map((_, i) => (
-      <button key={i} className={s.chapterItem} data-active={i === segIdx} onClick={() => pickChapter(i)}>
-        <span className={s.chapterNum}>{i + 1}</span>
-        Chapter {i + 1}
-      </button>
-    ));
+    chapterMarks.length > 0
+      ? chapterMarks.map((m, k) => (
+          <button
+            key={m.idx}
+            className={s.chapterItem}
+            data-active={currentMark?.idx === m.idx}
+            onClick={() => pickChapter(m.idx)}
+            title={m.title}
+          >
+            <span className={s.chapterNum}>{k + 1}</span>
+            {m.title}
+          </button>
+        ))
+      : readySegs.map((_, i) => (
+          <button key={i} className={s.chapterItem} data-active={i === segIdx} onClick={() => pickChapter(i)}>
+            <span className={s.chapterNum}>{i + 1}</span>
+            Part {i + 1}
+          </button>
+        ));
 
   const sleepBtn = () => (
     <button
@@ -463,7 +491,7 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
               <button className={s.chip} onClick={cycleSpeed}>{speedLabel}</button>
               {sleepBtn()}
             </div>
-            <span className={s.sub}>Chapter {segIdx + 1} of {readySegs.length}</span>
+            <span className={s.sub}>{positionLabel}</span>
           </div>
 
           <div className={s.sheetChapters}>{chapters()}</div>

@@ -32,6 +32,8 @@ class Book(Base):
     genre = Column(String, nullable=True)
     year = Column(Integer, nullable=True)
     notes = Column(Text, nullable=True)
+    # admin-only: per-book narration style/context passed to the TTS model
+    tts_instructions = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     segments = relationship(
@@ -49,6 +51,8 @@ class Segment(Base):
     book_id = Column(Integer, ForeignKey("books.id"), nullable=False, index=True)
     order = Column(Integer, nullable=False)
     text = Column(Text, nullable=False)
+    # set on the first segment of each detected chapter; None elsewhere
+    chapter_title = Column(String, nullable=True)
     audio_path = Column(String, nullable=True)
     status = Column(String, default="pending")  # pending | processing | ready | error
     duration = Column(Float, nullable=True)

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { deleteBook, retryBook, updateBook } from "../api";
 import { loadProgress } from "../lib/playback";
 import EditModal from "./EditModal";
+import ReviewModal from "./ReviewModal";
 import s from "./BookCard.module.css";
 
 const PALETTE = [
@@ -16,6 +17,7 @@ function color(id) {
 const STATUS_LABEL = {
   pending: "Queued",
   processing: "Extracting text…",
+  review: "Ready to review",
   synthesizing: "Generating audio…",
   complete: "Ready",
   error: "Error",
@@ -26,6 +28,7 @@ const PauseIc = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="cur
 
 export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onDeleted, onUpdated }) {
   const [showEdit, setShowEdit] = useState(false);
+  const [showReview, setShowReview] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [retryError, setRetryError] = useState("");
 
@@ -158,6 +161,16 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
                 {actionLabel}
               </button>
             )}
+            {isAdmin && book.status === "review" && (
+              <>
+                <button className={s.retryBtn} onClick={() => setShowReview(true)}>
+                  Review
+                </button>
+                <button className={s.playBtn} onClick={handleRetry}>
+                  Approve
+                </button>
+              </>
+            )}
             {isAdmin && book.status === "error" && (
               <button className={s.retryBtn} onClick={handleRetry}>Retry</button>
             )}
@@ -207,6 +220,14 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
           book={book}
           onClose={() => setShowEdit(false)}
           onSaved={onUpdated}
+        />
+      )}
+
+      {showReview && (
+        <ReviewModal
+          book={book}
+          onClose={() => setShowReview(false)}
+          onApproved={onUpdated}
         />
       )}
     </>
