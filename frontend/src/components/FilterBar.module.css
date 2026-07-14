@@ -1,0 +1,71 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 24px 0;
+}
+.search {
+  width: 100%;
+  max-width: 420px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+}
+.search:focus {
+  border-color: var(--text-muted);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  min-height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.chip:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+.chipActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.chipActive:hover {
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .bar {
+    padding: 14px 16px 0;
+  }
+  .search {
+    max-width: none;
+    font-size: 16px; /* prevents iOS zoom-on-focus */
+  }
+  /* Single scrollable row instead of a tall wrapped block */
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: 0 -16px;
+    padding: 0 16px 2px;
+  }
+  .chips::-webkit-scrollbar {
+    display: none;
+  }
+  .chip {
+    flex-shrink: 0;
+  }
+}
