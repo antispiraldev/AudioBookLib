@@ -4,6 +4,7 @@ import BookCard from "./components/BookCard";
 import UploadModal from "./components/UploadModal";
 import AudioPlayer from "./components/AudioPlayer";
 import FilterBar from "./components/FilterBar";
+import s from "./App.module.css";
 
 const ACTIVE_STATUSES = new Set(["pending", "processing", "synthesizing"]);
 
@@ -83,23 +84,23 @@ export default function App() {
 
   return (
     <div style={{ paddingBottom: activeBook ? 90 : 0 }}>
-      <header style={styles.header}>
-        <h1 style={styles.logo}>Aedo</h1>
-        <div style={styles.headerRight}>
+      <header className={s.header}>
+        <h1 className={s.logo}>Aedo</h1>
+        <div className={s.right}>
           {isAdmin && (
-            <button style={styles.addBtn} onClick={() => setShowUpload(true)}>
-              + Add Book
+            <button className={s.addBtn} onClick={() => setShowUpload(true)}>
+              +<span className={s.addLabel}> Add Book</span>
             </button>
           )}
           {user ? (
             <>
-              <span style={styles.userName}>{user.display_name || user.email}</span>
-              <button style={styles.authBtn} onClick={handleLogout}>
+              <span className={s.userName}>{user.display_name || user.email}</span>
+              <button className={s.authBtn} onClick={handleLogout}>
                 Sign out
               </button>
             </>
           ) : (
-            <a style={styles.authLink} href={loginUrl()}>
+            <a className={s.authLink} href={loginUrl()}>
               Sign in
             </a>
           )}
@@ -107,20 +108,20 @@ export default function App() {
       </header>
 
       {loginDenied && (
-        <div style={styles.denied}>
+        <div className={s.denied}>
           This is a private beta — your Google account isn't on the invite
           list yet.
-          <button style={styles.deniedClose} onClick={() => setLoginDenied(false)}>
+          <button className={s.deniedClose} onClick={() => setLoginDenied(false)}>
             ✕
           </button>
         </div>
       )}
 
       {books.length === 0 ? (
-        <div style={styles.empty}>
+        <div className={s.empty}>
           <p>No books yet.</p>
           {isAdmin && (
-            <button style={styles.addBtnLarge} onClick={() => setShowUpload(true)}>
+            <button className={s.addBtnLarge} onClick={() => setShowUpload(true)}>
               Upload your first PDF
             </button>
           )}
@@ -135,11 +136,11 @@ export default function App() {
             onQuery={setQuery}
           />
           {visibleBooks.length === 0 ? (
-            <div style={styles.empty}>
+            <div className={s.empty}>
               <p>No books match.</p>
             </div>
           ) : (
-            <div style={styles.grid}>
+            <div className={s.grid}>
               {visibleBooks.map((book) => (
                 <BookCard
                   key={book.id}
@@ -169,96 +170,3 @@ export default function App() {
     </div>
   );
 }
-
-const styles = {
-  header: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "16px 24px",
-    borderBottom: "1px solid var(--border)",
-    position: "sticky",
-    top: 0,
-    background: "var(--bg)",
-    zIndex: 10,
-  },
-  logo: {
-    fontSize: 18,
-    fontWeight: 700,
-    letterSpacing: "-0.5px",
-  },
-  addBtn: {
-    background: "var(--accent)",
-    color: "#fff",
-    borderRadius: 7,
-    padding: "8px 16px",
-    fontSize: 13,
-    fontWeight: 500,
-  },
-  headerRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
-  userName: {
-    fontSize: 13,
-    color: "var(--text-muted)",
-  },
-  authBtn: {
-    background: "transparent",
-    border: "1px solid var(--border)",
-    color: "var(--text-muted)",
-    borderRadius: 7,
-    padding: "7px 14px",
-    fontSize: 13,
-  },
-  authLink: {
-    border: "1px solid var(--border)",
-    color: "var(--text)",
-    borderRadius: 7,
-    padding: "7px 14px",
-    fontSize: 13,
-    textDecoration: "none",
-  },
-  denied: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    margin: "16px 24px 0",
-    padding: "10px 16px",
-    fontSize: 13,
-    background: "var(--surface)",
-    border: "1px solid var(--danger)",
-    borderRadius: 8,
-    color: "var(--text)",
-  },
-  deniedClose: {
-    background: "transparent",
-    color: "var(--text-muted)",
-    fontSize: 13,
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-    gap: 20,
-    padding: 24,
-  },
-  empty: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-    height: "60vh",
-    color: "var(--text-muted)",
-  },
-  addBtnLarge: {
-    background: "var(--accent)",
-    color: "#fff",
-    borderRadius: 8,
-    padding: "12px 24px",
-    fontSize: 15,
-    fontWeight: 500,
-  },
-};

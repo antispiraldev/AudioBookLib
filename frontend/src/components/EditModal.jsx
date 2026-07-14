@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { updateBook, suggestBook } from "../api";
+import s from "./Modal.module.css";
 
 export default function EditModal({ book, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -22,13 +23,13 @@ export default function EditModal({ book, onClose, onSaved }) {
     setSuggesting(true);
     setError("");
     try {
-      const s = await suggestBook(book.id);
+      const suggestion = await suggestBook(book.id);
       setForm((f) => ({
-        title: s.title ?? f.title,
-        author: s.author ?? f.author,
-        genre: s.genre ?? f.genre,
-        year: s.year != null ? String(s.year) : f.year,
-        notes: s.notes ?? f.notes,
+        title: suggestion.title ?? f.title,
+        author: suggestion.author ?? f.author,
+        genre: suggestion.genre ?? f.genre,
+        year: suggestion.year != null ? String(suggestion.year) : f.year,
+        notes: suggestion.notes ?? f.notes,
         tts_instructions: f.tts_instructions,
       }));
     } catch (err) {
@@ -63,41 +64,45 @@ export default function EditModal({ book, onClose, onSaved }) {
   }
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.headingRow}>
-          <h2 style={styles.heading}>Edit Book</h2>
+    <div className={s.overlay} onClick={onClose}>
+      <div className={s.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={s.headingRow}>
+          <h2 className={s.heading}>Edit Book</h2>
           <button
             type="button"
-            style={{ ...styles.suggestBtn, opacity: suggesting ? 0.6 : 1 }}
+            className={s.suggestBtn}
             disabled={suggesting}
             onClick={handleSuggest}
           >
             {suggesting ? "Suggesting…" : "✦ Suggest"}
           </button>
         </div>
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <label style={styles.label}>Title</label>
-          <input
-            style={styles.input}
-            value={form.title}
-            onChange={(e) => set("title", e.target.value)}
-            required
-          />
+        <form onSubmit={handleSubmit} className={s.form}>
+          <div>
+            <label className={s.label}>Title</label>
+            <input
+              className={s.input}
+              value={form.title}
+              onChange={(e) => set("title", e.target.value)}
+              required
+            />
+          </div>
 
-          <label style={styles.label}>Author</label>
-          <input
-            style={styles.input}
-            placeholder="Optional"
-            value={form.author}
-            onChange={(e) => set("author", e.target.value)}
-          />
+          <div>
+            <label className={s.label}>Author</label>
+            <input
+              className={s.input}
+              placeholder="Optional"
+              value={form.author}
+              onChange={(e) => set("author", e.target.value)}
+            />
+          </div>
 
-          <div style={styles.row}>
-            <div style={{ flex: 2 }}>
-              <label style={styles.label}>Genre</label>
+          <div className={s.row}>
+            <div className={s.col2}>
+              <label className={s.label}>Genre</label>
               <input
-                style={styles.input}
+                className={s.input}
                 placeholder="e.g. Non-fiction"
                 value={form.genre}
                 list="genre-suggestions"
@@ -110,10 +115,10 @@ export default function EditModal({ book, onClose, onSaved }) {
                 ))}
               </datalist>
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Year</label>
+            <div className={s.col1}>
+              <label className={s.label}>Year</label>
               <input
-                style={styles.input}
+                className={s.input}
                 type="number"
                 placeholder="e.g. 1969"
                 min="1000"
@@ -124,31 +129,35 @@ export default function EditModal({ book, onClose, onSaved }) {
             </div>
           </div>
 
-          <label style={styles.label}>Notes</label>
-          <textarea
-            style={{ ...styles.input, ...styles.textarea }}
-            placeholder="Your notes (optional)"
-            value={form.notes}
-            onChange={(e) => set("notes", e.target.value)}
-          />
+          <div>
+            <label className={s.label}>Notes</label>
+            <textarea
+              className={`${s.input} ${s.textarea}`}
+              placeholder="Your notes (optional)"
+              value={form.notes}
+              onChange={(e) => set("notes", e.target.value)}
+            />
+          </div>
 
-          <label style={styles.label}>Narration instructions</label>
-          <textarea
-            style={{ ...styles.input, ...styles.textarea }}
-            placeholder="How the narrator should read this book (tone, pace, style). Leave blank for the default."
-            value={form.tts_instructions}
-            onChange={(e) => set("tts_instructions", e.target.value)}
-          />
+          <div>
+            <label className={s.label}>Narration instructions</label>
+            <textarea
+              className={`${s.input} ${s.textarea}`}
+              placeholder="How the narrator should read this book (tone, pace, style). Leave blank for the default."
+              value={form.tts_instructions}
+              onChange={(e) => set("tts_instructions", e.target.value)}
+            />
+          </div>
 
-          {error && <p style={{ color: "var(--danger)", fontSize: 13 }}>{error}</p>}
+          {error && <p className={s.errorText}>{error}</p>}
 
-          <div style={styles.actions}>
-            <button type="button" style={styles.cancelBtn} onClick={onClose}>
+          <div className={s.actions}>
+            <button type="button" className={s.cancelBtn} onClick={onClose}>
               Cancel
             </button>
             <button
               type="submit"
-              style={{ ...styles.submitBtn, opacity: loading ? 0.6 : 1 }}
+              className={s.submitBtn}
               disabled={loading || !form.title.trim()}
             >
               {loading ? "Saving…" : "Save"}
@@ -159,99 +168,3 @@ export default function EditModal({ book, onClose, onSaved }) {
     </div>
   );
 }
-
-const styles = {
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.7)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 100,
-  },
-  modal: {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius)",
-    padding: 28,
-    width: 440,
-    maxWidth: "90vw",
-  },
-  headingRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  heading: {
-    fontSize: 18,
-    fontWeight: 600,
-  },
-  suggestBtn: {
-    background: "var(--surface2)",
-    border: "1px solid var(--border)",
-    color: "var(--accent)",
-    borderRadius: 6,
-    padding: "6px 12px",
-    fontSize: 12,
-    fontWeight: 500,
-    cursor: "pointer",
-    transition: "opacity 0.2s",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
-  label: {
-    fontSize: 11,
-    color: "var(--text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    marginBottom: 2,
-    display: "block",
-  },
-  input: {
-    width: "100%",
-    background: "var(--surface2)",
-    border: "1px solid var(--border)",
-    borderRadius: 6,
-    padding: "9px 12px",
-    color: "var(--text)",
-    fontSize: 14,
-    outline: "none",
-  },
-  textarea: {
-    resize: "vertical",
-    minHeight: 80,
-    fontFamily: "inherit",
-  },
-  row: {
-    display: "flex",
-    gap: 10,
-  },
-  actions: {
-    display: "flex",
-    gap: 8,
-    justifyContent: "flex-end",
-    marginTop: 8,
-  },
-  cancelBtn: {
-    background: "transparent",
-    border: "1px solid var(--border)",
-    color: "var(--text-muted)",
-    borderRadius: 6,
-    padding: "8px 16px",
-    fontSize: 14,
-  },
-  submitBtn: {
-    background: "var(--accent)",
-    color: "#fff",
-    borderRadius: 6,
-    padding: "8px 18px",
-    fontSize: 14,
-    fontWeight: 500,
-    transition: "opacity 0.2s",
-  },
-};
