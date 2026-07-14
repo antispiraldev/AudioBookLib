@@ -21,7 +21,7 @@ flowchart TD
         Review -->|"approve → Celery group"| Synth
 
         subgraph Parallel ["Parallel segment tasks (up to 5)"]
-            Synth["synthesize_segment × N\n─────────────\nOpenAI gpt-4o-mini-tts\nvoice: alloy\nper-book instructions\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
+            Synth["synthesize_segment × N\n─────────────\nOpenAI gpt-4o-mini-tts\nvoice: onyx\nper-book instructions\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
         end
 
         Synth -->|"chord callback"| Finalize

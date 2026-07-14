@@ -2,7 +2,7 @@ from pathlib import Path
 from openai import OpenAI
 
 MODEL = "gpt-4o-mini-tts"
-VOICE = "alloy"
+VOICE = "onyx"
 DEFAULT_INSTRUCTIONS = (
     "Read as a warm, measured audiobook narrator. Neutral, natural pacing. "
     "Do not editorialize or change the words."
