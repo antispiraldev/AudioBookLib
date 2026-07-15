@@ -1,10 +1,17 @@
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor
+from typing import List, Tuple
 
 from openai import OpenAI
 
 log = logging.getLogger(__name__)
 
 _client = None
+
+# Chunks are cleaned in parallel — the calls are network-bound, so threads (not
+# more Celery workers) are the cheap win. Tunable if OpenAI starts rate-limiting.
+CLEAN_CONCURRENCY = int(os.getenv("CLEAN_CONCURRENCY", "8"))
 
 # How far the cleaned length may drift from the input before we assume the model
 # paraphrased, truncated, or ran away — in which case we keep the heuristic text.
@@ -23,7 +30,10 @@ _SYSTEM_PROMPT = (
 def _get_client() -> OpenAI:
     global _client
     if _client is None:
-        _client = OpenAI()
+        # Retry transient 429/5xx with backoff before we give up and fall back
+        # to heuristic text — cleaning chunks concurrently invites rate limits,
+        # and a silent fallback would quietly cost us the polish.
+        _client = OpenAI(max_retries=5)
     return _client
 
 
@@ -33,8 +43,27 @@ def llm_clean(text: str) -> str:
     Falls back to the input text if the model call fails or the result drifts
     too far in length (a proxy for hallucination / truncation / runaway).
     """
+    return _clean_one(text)[0]
+
+
+def clean_many(texts: List[str], max_workers: int = 0) -> Tuple[List[str], int]:
+    """Clean chunks in parallel. Returns (cleaned_texts, fallback_count).
+
+    Order is preserved (callers index segments by position, so this matters).
+    Nothing raises: _clean_one absorbs failures into the fallback count.
+    """
+    if not texts:
+        return [], 0
+    workers = max_workers or CLEAN_CONCURRENCY
+    with ThreadPoolExecutor(max_workers=min(workers, len(texts))) as pool:
+        results = list(pool.map(_clean_one, texts))
+    return [t for t, _ in results], sum(1 for _, used in results if not used)
+
+
+def _clean_one(text: str) -> Tuple[str, bool]:
+    """Return (text, used_llm). used_llm is False whenever we fell back."""
     if not text.strip():
-        return text
+        return text, True
 
     try:
         response = _get_client().chat.completions.create(
@@ -48,11 +77,11 @@ def llm_clean(text: str) -> str:
         cleaned = (response.choices[0].message.content or "").strip()
     except Exception:
         log.exception("llm_clean call failed; keeping heuristic text")
-        return text
+        return text, False
 
     if not cleaned:
         log.warning("llm_clean returned empty output; keeping heuristic text")
-        return text
+        return text, False
 
     drift = abs(len(cleaned) - len(text)) / max(len(text), 1)
     if drift > _MAX_LENGTH_DRIFT:
@@ -61,6 +90,6 @@ def llm_clean(text: str) -> str:
             drift * 100,
             _MAX_LENGTH_DRIFT * 100,
         )
-        return text
+        return text, False
 
-    return cleaned
+    return cleaned, True

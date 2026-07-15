@@ -6,7 +6,7 @@ from celery import chord, group
 from .celery_app import celery
 from .database import SessionLocal
 from .models import Book, Segment
-from .services.clean import llm_clean
+from .services.clean import clean_many
 from .services.pdf import extract_text_chunks, looks_scanned
 from .services.tts import synthesize
 from .services import storage
@@ -44,11 +44,18 @@ def ingest_book(book_id: int) -> None:
                 book_id, total_chars, page_count,
             )
 
-        for i, chunk in enumerate(chunks):
+        texts, fallbacks = clean_many([c.text for c in chunks])
+        if fallbacks:
+            log.warning(
+                "Book %s: %d/%d chunks kept heuristic text (LLM polish unavailable)",
+                book_id, fallbacks, len(chunks),
+            )
+
+        for i, (chunk, text) in enumerate(zip(chunks, texts)):
             db.add(Segment(
                 book_id=book_id,
                 order=i,
-                text=llm_clean(chunk.text),
+                text=text,
                 chapter_title=chunk.chapter_title,
             ))
         db.commit()

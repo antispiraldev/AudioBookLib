@@ -20,4 +20,9 @@ celery.conf.update(
     task_acks_late=True,
     task_reject_on_worker_lost=True,
     worker_prefetch_multiplier=1,
+    # With acks_late, Redis redelivers any task still running after the
+    # visibility timeout (default 1h) — a long ingest would then run twice and
+    # duplicate every segment. Parallel cleaning keeps us far under this, but
+    # raise it so an unusually large PDF can't trip the same wire.
+    broker_transport_options={"visibility_timeout": 7200},
 )
