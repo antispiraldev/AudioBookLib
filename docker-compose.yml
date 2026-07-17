@@ -1,6 +1,7 @@
 services:
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     # Published only on DB_BIND_IP so the dedicated worker droplet can reach the
     # broker over the VPC. Defaults to loopback for local dev; the web droplet
     # sets DB_BIND_IP=10.120.0.2 (its VPC interface) in .env. Never bind this to
@@ -10,6 +11,7 @@ services:
 
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=voxshelf
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-voxshelf}
@@ -27,6 +29,7 @@ services:
 
   backend:
     build: ./backend
+    restart: unless-stopped
     volumes:
       - ./storage:/app/storage
       - ./backend:/app
@@ -48,6 +51,7 @@ services:
 
   worker:
     build: ./backend
+    restart: unless-stopped
     # In production the worker runs on a dedicated droplet (docker-compose.worker.yml),
     # not here — this service is behind the "worker" profile so `docker compose up -d`
     # on the web droplet does NOT start it. For an all-in-one local stack, run:
@@ -78,6 +82,7 @@ services:
 
   frontend:
     build: ./frontend
+    restart: unless-stopped
     ports:
       - "80:80"
     depends_on:
