@@ -1,6 +1,7 @@
 import logging
 import os
 import shutil
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -165,11 +166,16 @@ def retry_synthesize(book_id: int, db: Session = Depends(get_db)):
 
 
 def _clear_generated(book_id: int, db: Session) -> None:
-    """Drop a book's segments and their audio so ingest can rebuild cleanly."""
-    storage.delete_prefix(f"audio/{book_id}/")
+    """Drop a book's segments so ingest can rebuild cleanly, archiving the
+    existing audio rather than deleting it — resynthesis costs real money and
+    R2 storage is cheap, so a bad reprocess never destroys a paid-for take."""
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    storage.archive_prefix(f"audio/{book_id}/", f"audio-archive/{book_id}/{ts}/")
     local_audio = os.path.join("storage", "audio", str(book_id))
     if os.path.isdir(local_audio):
-        shutil.rmtree(local_audio, ignore_errors=True)
+        dst = os.path.join("storage", "audio-archive", str(book_id), ts)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.move(local_audio, dst)
     db.query(Segment).filter(Segment.book_id == book_id).delete()
     db.commit()
 
@@ -231,8 +237,14 @@ def delete_book(book_id: int, db: Session = Depends(get_db)):
     book = db.get(Book, book_id)
     if not book:
         raise HTTPException(404, "Book not found")
+    # A true, complete delete — including any archived takes from past reprocesses.
     storage.delete_prefix(f"audio/{book_id}/")
+    storage.delete_prefix(f"audio-archive/{book_id}/")
     storage.delete_prefix(f"pdfs/{book_id}/")
+    for d in (os.path.join("storage", "audio", str(book_id)),
+              os.path.join("storage", "audio-archive", str(book_id))):
+        if os.path.isdir(d):
+            shutil.rmtree(d, ignore_errors=True)
     if book.pdf_path.startswith("storage/") and os.path.exists(book.pdf_path):
         os.remove(book.pdf_path)
     db.delete(book)

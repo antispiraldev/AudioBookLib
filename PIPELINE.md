@@ -32,7 +32,7 @@ flowchart TD
 
     DB -->|"poll every 3s"| Frontend
     Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nReview modal + Approve\nEdit modal (+ narration\ninstructions) + Suggest\nReprocess (re-run ingest,\n± replace PDF)"]
-    Frontend -->|"POST /books/{id}/reprocess\nclear segments + audio,\n± upload new PDF → R2"| Queue
+    Frontend -->|"POST /books/{id}/reprocess\narchive audio → audio-archive/,\nclear segments, ± new PDF → R2"| Queue
     Frontend -->|"GET /api/audio/{id}\n→ 302 to signed R2 URL\n(1 hr expiry)"| R2
     R2["Cloudflare R2\n─────────────\nPrivate bucket\nSigned URLs\nNo egress fees"]
     R2 -->|"Audio stream\n(range requests)"| Player["Audio Player\n─────────────\nSegment pills\nChapter dropdown + jump\n±15s skip\nOverall progress"]
