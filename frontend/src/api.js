@@ -49,6 +49,20 @@ export async function synthesizeBook(id) {
 // Retrying a failed book and approving a reviewed one hit the same endpoint.
 export const retryBook = synthesizeBook;
 
+// Re-extract + re-clean with the current pipeline. `file` is optional — required
+// only when the book's original PDF is no longer on the server.
+export async function reprocessBook(id, file) {
+  const opts = { method: "POST" };
+  if (file) {
+    const fd = new FormData();
+    fd.append("file", file);
+    opts.body = fd;
+  }
+  const r = await fetch(`${BASE}/books/${id}/reprocess`, opts);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
 export async function fetchBookSegments(id) {
   const r = await fetch(`${BASE}/books/${id}/segments`);
   if (!r.ok) throw new Error(await parseError(r));

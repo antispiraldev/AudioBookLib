@@ -3,6 +3,7 @@ import { deleteBook, retryBook, updateBook } from "../api";
 import { loadProgress } from "../lib/playback";
 import EditModal from "./EditModal";
 import ReviewModal from "./ReviewModal";
+import ReprocessModal from "./ReprocessModal";
 import s from "./BookCard.module.css";
 
 const PALETTE = [
@@ -29,6 +30,7 @@ const PauseIc = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="cur
 export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onDeleted, onUpdated }) {
   const [showEdit, setShowEdit] = useState(false);
   const [showReview, setShowReview] = useState(false);
+  const [showReprocess, setShowReprocess] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [retryError, setRetryError] = useState("");
 
@@ -202,6 +204,10 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
                         <span className={s.menuIcon}>✎</span>
                         Edit
                       </button>
+                      <button className={s.menuItem} role="menuitem" onClick={() => { setMenuOpen(false); setShowReprocess(true); }}>
+                        <span className={s.menuIcon}>↻</span>
+                        Reprocess
+                      </button>
                       <button className={`${s.menuItem} ${s.menuItemDanger}`} role="menuitem" onClick={handleDelete}>
                         <span className={s.menuIcon}>🗑</span>
                         Delete
@@ -228,6 +234,14 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
           book={book}
           onClose={() => setShowReview(false)}
           onApproved={onUpdated}
+        />
+      )}
+
+      {showReprocess && (
+        <ReprocessModal
+          book={book}
+          onClose={() => setShowReprocess(false)}
+          onReprocessed={onUpdated}
         />
       )}
     </>

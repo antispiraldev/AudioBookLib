@@ -14,7 +14,7 @@ flowchart TD
     Queue --> Ingest
 
     subgraph Worker ["Celery Worker (concurrency=5)"]
-        Ingest["ingest_book\n─────────────────\nPyMuPDF block/span analysis\n• detect body font size\n• skip headers / footers\n• skip page numbers\n• skip footnotes\n• rejoin hyphenated breaks\n• format headings for TTS\nHeuristic cleanup\n• NFKC / ligatures\n• strip Project Gutenberg header/license\n• strip leading table-of-contents block\n• strip [n] citations, URLs/DOIs\n• drop trailing references section\n• expand e.g./i.e./et al.\ndetect scanned PDFs (chars/page) → needs OCR\nChapter detection (regex + roman validation\n+ body-gap/dedup/longest-run filters)\nChunk ~1800 chars, chapter-aware\n(never crosses a chapter boundary;\nchapter_title on first segment)\ngpt-4o-mini polish (verbatim)\n→ status: review (pause)"]
+        Ingest["ingest_book\n─────────────────\nPyMuPDF block/span analysis\n• detect body font size\n• skip headers / footers\n• skip page numbers\n• skip footnotes\n• rejoin hyphenated breaks\n• format headings for TTS\nHeuristic cleanup\n• NFKC / ligatures\n• strip Project Gutenberg header/license\n• strip leading table-of-contents block\n• strip [n] citations, URLs/DOIs\n• drop trailing references section\n• expand e.g./i.e./et al.\ndetect scanned PDFs (chars/page) → needs OCR\nChapter detection (regex + roman validation\n+ body-gap/dedup/longest-run filters)\nChunk ~1800 chars, chapter-aware\n(never crosses a chapter boundary;\nchapter_title on first segment)\ngpt-4o-mini polish (verbatim, parallel)\n→ status: review (pause)"]
 
         Review["Admin review\n─────────────\nGET /books/{id}/segments\nedit segments if needed\nPOST /books/{id}/synthesize"]
         Ingest -->|"status: review"| Review
@@ -31,7 +31,8 @@ flowchart TD
     Finalize --> DB
 
     DB -->|"poll every 3s"| Frontend
-    Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nReview modal + Approve\nEdit modal (+ narration\ninstructions) + Suggest"]
+    Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nReview modal + Approve\nEdit modal (+ narration\ninstructions) + Suggest\nReprocess (re-run ingest,\n± replace PDF)"]
+    Frontend -->|"POST /books/{id}/reprocess\nclear segments + audio,\n± upload new PDF → R2"| Queue
     Frontend -->|"GET /api/audio/{id}\n→ 302 to signed R2 URL\n(1 hr expiry)"| R2
     R2["Cloudflare R2\n─────────────\nPrivate bucket\nSigned URLs\nNo egress fees"]
     R2 -->|"Audio stream\n(range requests)"| Player["Audio Player\n─────────────\nSegment pills\nChapter dropdown + jump\n±15s skip\nOverall progress"]

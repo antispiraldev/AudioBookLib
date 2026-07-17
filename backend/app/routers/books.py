@@ -164,6 +164,68 @@ def retry_synthesize(book_id: int, db: Session = Depends(get_db)):
     return book
 
 
+def _clear_generated(book_id: int, db: Session) -> None:
+    """Drop a book's segments and their audio so ingest can rebuild cleanly."""
+    storage.delete_prefix(f"audio/{book_id}/")
+    local_audio = os.path.join("storage", "audio", str(book_id))
+    if os.path.isdir(local_audio):
+        shutil.rmtree(local_audio, ignore_errors=True)
+    db.query(Segment).filter(Segment.book_id == book_id).delete()
+    db.commit()
+
+
+@router.post("/{book_id}/reprocess", response_model=BookOut, dependencies=[Depends(require_admin)])
+async def reprocess_book(
+    book_id: int,
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+):
+    """Re-extract and re-clean a book with the current pipeline, back to review.
+
+    Clears existing segments and audio, then re-runs ingest. Migrated books
+    whose source PDF is gone must attach it here — the upload is persisted to
+    R2 so the book is never stranded again.
+    """
+    book = db.get(Book, book_id)
+    if not book:
+        raise HTTPException(404, "Book not found")
+
+    if file is not None:
+        if not file.filename.lower().endswith(".pdf"):
+            raise HTTPException(400, "Only PDF files are supported")
+        # Drop any old copies first, then store the new PDF where the old one lived.
+        storage.delete_prefix(f"pdfs/{book_id}/")
+        if book.pdf_path.startswith("storage/") and os.path.exists(book.pdf_path):
+            os.remove(book.pdf_path)
+
+        local_path = os.path.join(STORAGE_PDF, file.filename)
+        with open(local_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        book.filename = file.filename
+        if storage.is_enabled():
+            key = f"pdfs/{book_id}/{file.filename}"
+            storage.upload(local_path, key)
+            os.remove(local_path)
+            book.pdf_path = key
+        else:
+            book.pdf_path = local_path
+        db.commit()
+    elif not storage.pdf_available(book.pdf_path):
+        raise HTTPException(
+            400,
+            "Source PDF is unavailable — attach the PDF file to reprocess this book.",
+        )
+
+    _clear_generated(book_id, db)
+    book.status = "pending"
+    book.page_count = None
+    db.commit()
+    db.refresh(book)
+
+    ingest_book.delay(book_id)
+    return book
+
+
 @router.delete("/{book_id}", dependencies=[Depends(require_admin)])
 def delete_book(book_id: int, db: Session = Depends(get_db)):
     book = db.get(Book, book_id)

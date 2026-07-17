@@ -51,6 +51,25 @@ def is_r2_key(path: str) -> bool:
     return is_enabled() and not path.startswith("storage/")
 
 
+def pdf_available(path: str) -> bool:
+    """True if the source PDF can actually be fetched for (re)processing.
+
+    Migrated books carry local storage/ paths whose files no longer exist in
+    the container and were never pushed to R2 — reprocessing those needs a
+    fresh upload, so callers check this before wiping segments.
+    """
+    if is_r2_key(path):
+        client = _get_client()
+        if not client:
+            return False
+        try:
+            client.head_object(Bucket=_bucket(), Key=path)
+            return True
+        except Exception:
+            return False
+    return os.path.exists(path)
+
+
 @contextmanager
 def local_pdf(path: str):
     """Yield a readable local path for a pdf_path that may be an R2 key."""
