@@ -33,6 +33,9 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
   const [showReprocess, setShowReprocess] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [retryError, setRetryError] = useState("");
+  // Set when the user fires a reprocess, so we can label the working state
+  // "Reprocessing…" rather than the generic "Queued"/"Extracting text…".
+  const [reprocessing, setReprocessing] = useState(false);
 
   const readySegments = book.segments.filter((seg) => seg.status === "ready").length;
   const failedSegments = book.segments.filter((seg) => seg.status === "error").length;
@@ -40,6 +43,13 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
   const progress = total > 0 ? readySegments / total : 0;
   const canPlay = book.status === "complete" || (book.status === "synthesizing" && readySegments > 0);
   const isStuck = book.status === "synthesizing" && failedSegments > 0;
+  // "Working" = extracting/cleaning text with nothing to count yet (fresh
+  // ingest or a reprocess). Drives the animated indicator and blocks re-firing.
+  const isWorking = book.status === "pending" || book.status === "processing";
+  const busy = isWorking || book.status === "synthesizing";
+  const statusText = reprocessing && isWorking
+    ? "Reprocessing…"
+    : STATUS_LABEL[book.status] || book.status;
   const initial = (book.title || "?").trim().charAt(0).toUpperCase();
 
   // Saved listening progress (read at render; refreshes when the player closes
@@ -48,6 +58,12 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
   const started = listenFrac > 0.01 && listenFrac < 0.995;
   // Tapping the card plays it; tapping the active card toggles play/pause.
   const actionLabel = isActive ? (playing ? "Pause" : "Play") : started ? "Resume" : "Play";
+
+  // Once the book leaves the working states (reaches review/complete/error),
+  // drop the local "Reprocessing…" label.
+  useEffect(() => {
+    if (!isWorking) setReprocessing(false);
+  }, [isWorking]);
 
   // Close the overflow menu on Escape.
   useEffect(() => {
@@ -128,8 +144,9 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
           {book.notes && <p className={s.notes} title={book.notes}>{book.notes}</p>}
 
           <div className={s.statusRow}>
-            <span className={`${s.badge} ${book.status === "error" ? s.badgeError : ""}`}>
-              {STATUS_LABEL[book.status] || book.status}
+            {isWorking && <span className={s.spinner} aria-hidden="true" />}
+            <span className={`${s.badge} ${book.status === "error" ? s.badgeError : ""} ${isWorking ? s.badgeWorking : ""}`}>
+              {statusText}
             </span>
             {book.status === "synthesizing" && total > 0 && (
               <span className={s.count}>{readySegments}/{total}</span>
@@ -138,6 +155,12 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
               <span className={`${s.count} ${s.countError}`}>{failedSegments}/{total} failed</span>
             )}
           </div>
+
+          {isWorking && (
+            <div className={s.progressTrack}>
+              <div className={s.progressIndeterminate} />
+            </div>
+          )}
 
           {book.status === "synthesizing" && total > 0 && (
             <div className={s.progressTrack}>
@@ -204,9 +227,14 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
                         <span className={s.menuIcon}>✎</span>
                         Edit
                       </button>
-                      <button className={s.menuItem} role="menuitem" onClick={() => { setMenuOpen(false); setShowReprocess(true); }}>
+                      <button
+                        className={s.menuItem}
+                        role="menuitem"
+                        disabled={busy}
+                        onClick={() => { setMenuOpen(false); setShowReprocess(true); }}
+                      >
                         <span className={s.menuIcon}>↻</span>
-                        Reprocess
+                        {reprocessing && isWorking ? "Reprocessing…" : "Reprocess"}
                       </button>
                       <button className={`${s.menuItem} ${s.menuItemDanger}`} role="menuitem" onClick={handleDelete}>
                         <span className={s.menuIcon}>🗑</span>
@@ -241,7 +269,7 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
         <ReprocessModal
           book={book}
           onClose={() => setShowReprocess(false)}
-          onReprocessed={onUpdated}
+          onReprocessed={(updated) => { setReprocessing(true); onUpdated(updated); }}
         />
       )}
     </>

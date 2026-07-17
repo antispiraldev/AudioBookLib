@@ -135,6 +135,33 @@
   background: var(--accent);
   transition: width 0.5s ease;
 }
+/* Indeterminate bar shown while a book is working (queued/extracting) —
+   e.g. right after a reprocess, when there's no segment count to fill yet. */
+.progressIndeterminate {
+  height: 100%;
+  width: 35%;
+  background: var(--accent);
+  border-radius: 2px;
+  animation: indeterminate 1.15s ease-in-out infinite;
+}
+@keyframes indeterminate {
+  0%   { margin-left: -35%; }
+  100% { margin-left: 100%; }
+}
+.badgeWorking {
+  color: var(--accent);
+  font-weight: 500;
+}
+.spinner {
+  width: 11px;
+  height: 11px;
+  flex: none;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 .errorMsg {
   font-size: 11px;
   color: var(--danger);
@@ -264,6 +291,13 @@
 }
 .menuItem:hover {
   background: var(--surface2);
+}
+.menuItem:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.menuItem:disabled:hover {
+  background: transparent;
 }
 .menuItemDanger {
   color: var(--danger);
