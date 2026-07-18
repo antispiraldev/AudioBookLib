@@ -3,7 +3,7 @@ import os
 import traceback as tb
 
 from celery import chord, group
-from celery.signals import task_failure
+from celery.signals import task_failure, worker_ready
 
 from .celery_app import celery
 from .database import SessionLocal
@@ -207,3 +207,13 @@ def _on_task_failure(sender=None, exception=None, einfo=None, args=None, **_):
         f"{type(exception).__name__}: {exception}" if exception else "Task failed",
         str(einfo) if einfo else None,
     )
+
+
+@worker_ready.connect
+def _start_host_heartbeat(**_):
+    """Worker-process only (the web backend never fires this signal): report
+    this host's memory/swap/load into Redis so the admin panel can see the
+    worker droplet, which has no public IP."""
+    from .services.monitor import start_heartbeat
+
+    start_heartbeat("worker")
