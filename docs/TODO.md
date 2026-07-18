@@ -14,7 +14,7 @@ verify, so they can't be built blind.
 
 - [x] PR4 — concurrency stats: `GET /api/admin/workers` via Celery `inspect`
       over the broker, plus Redis queue depth
-- [ ] PR5 — resource warnings: psutil for the web droplet locally; worker
+- [x] PR5 — resource warnings: psutil for the web droplet locally; worker
       self-reports mem/swap/load via periodic Celery heartbeat → Redis;
       `GET /api/admin/resources` with ok/warn/critical tied to the OOM
       thresholds, prominent banner on critical

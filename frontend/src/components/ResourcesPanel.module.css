@@ -1,0 +1,108 @@
+.section {
+  margin-top: 28px;
+}
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.name {
+  font-weight: 600;
+}
+.sev {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--surface2);
+  color: var(--text-muted);
+}
+.sev_ok {
+  background: rgba(61, 187, 110, 0.15);
+  color: #3dbb6e;
+}
+.sev_warn {
+  background: rgba(230, 180, 60, 0.15);
+  color: #e6b43c;
+}
+.sev_critical {
+  background: rgba(224, 82, 82, 0.15);
+  color: var(--danger);
+}
+.cardBody {
+  padding: 11px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.offline {
+  padding: 14px;
+  color: var(--danger);
+  font-size: 13px;
+}
+.meter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.meterHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.meterVal {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface2);
+  overflow: hidden;
+}
+.bar {
+  height: 100%;
+  border-radius: 3px;
+}
+.barGreen {
+  background: #3dbb6e;
+}
+.barAmber {
+  background: #e6b43c;
+}
+.barRed {
+  background: var(--danger);
+}
+.loadRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.muted {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.reasons {
+  font-size: 12px;
+  color: #e6b43c;
+}

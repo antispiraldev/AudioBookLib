@@ -4,10 +4,12 @@ import {
   fetchAdminBooks,
   fetchAdminEvents,
   fetchAdminWorkers,
+  fetchAdminResources,
 } from "../api";
 import BooksTable from "./BooksTable";
 import EventsPanel from "./EventsPanel";
 import WorkersPanel from "./WorkersPanel";
+import ResourcesPanel from "./ResourcesPanel";
 import s from "./AdminPanel.module.css";
 
 // Order + display labels for the status strip. Kept in sync with the backend's
@@ -26,20 +28,23 @@ export default function AdminPanel() {
   const [books, setBooks] = useState([]);
   const [events, setEvents] = useState([]);
   const [workers, setWorkers] = useState(null);
+  const [resources, setResources] = useState(null);
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
     try {
-      const [sum, bks, evs, wrk] = await Promise.all([
+      const [sum, bks, evs, wrk, res] = await Promise.all([
         fetchAdminSummary(),
         fetchAdminBooks(),
         fetchAdminEvents({ limit: 100 }),
         fetchAdminWorkers(),
+        fetchAdminResources(),
       ]);
       setSummary(sum);
       setBooks(bks);
       setEvents(evs);
       setWorkers(wrk);
+      setResources(res);
       setError(null);
     } catch (e) {
       setError(e.message);
@@ -67,6 +72,16 @@ export default function AdminPanel() {
 
       {error && <div className={s.error}>Couldn't load summary: {error}</div>}
 
+      {resources?.overall === "critical" && (
+        <div className={s.criticalBanner}>
+          Host resources critical —{" "}
+          {resources.hosts
+            .filter((h) => h.severity === "critical")
+            .map((h) => `${h.host}: ${h.reasons.join(", ")}`)
+            .join(" · ")}
+        </div>
+      )}
+
       <div className={s.tiles}>
         {STATUS_META.map(({ key, label }) => {
           const n = counts[key] ?? 0;
@@ -84,6 +99,8 @@ export default function AdminPanel() {
       </div>
 
       <WorkersPanel workers={workers} />
+
+      <ResourcesPanel resources={resources} />
 
       <div className={s.section}>
         <h3 className={s.sectionTitle}>Books</h3>
