@@ -4,9 +4,22 @@ import BookCard from "./components/BookCard";
 import UploadModal from "./components/UploadModal";
 import AudioPlayer from "./components/AudioPlayer";
 import FilterBar from "./components/FilterBar";
+import AdminPanel from "./components/AdminPanel";
 import s from "./App.module.css";
 
 const ACTIVE_STATUSES = new Set(["pending", "processing", "synthesizing"]);
+
+// Minimal hash-based routing — only two views (library + admin), so a full
+// router isn't worth the dependency. Returns "admin" for #/admin, else "library".
+function useHashRoute() {
+  const [hash, setHash] = useState(() => window.location.hash);
+  useEffect(() => {
+    const onChange = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", onChange);
+    return () => window.removeEventListener("hashchange", onChange);
+  }, []);
+  return hash === "#/admin" ? "admin" : "library";
+}
 
 export default function App() {
   const [books, setBooks] = useState([]);
@@ -18,6 +31,9 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loginDenied, setLoginDenied] = useState(false);
   const isAdmin = user?.role === "admin";
+  const route = useHashRoute();
+  // Only admins can be on the admin view; anyone else falls back to the library.
+  const onAdmin = route === "admin" && isAdmin;
 
   useEffect(() => {
     fetchMe().then(setUser).catch(() => {});
@@ -102,11 +118,16 @@ export default function App() {
   }
 
   return (
-    <div style={{ paddingBottom: activeBook ? 90 : 0 }}>
+    <div style={{ paddingBottom: activeBook && !onAdmin ? 90 : 0 }}>
       <header className={s.header}>
         <h1 className={s.logo}>Aedo</h1>
         <div className={s.right}>
           {isAdmin && (
+            <a className={s.navLink} href={onAdmin ? "#/" : "#/admin"}>
+              {onAdmin ? "Library" : "Admin"}
+            </a>
+          )}
+          {isAdmin && !onAdmin && (
             <button className={s.addBtn} onClick={() => setShowUpload(true)}>
               +<span className={s.addLabel}> Add Book</span>
             </button>
@@ -136,7 +157,9 @@ export default function App() {
         </div>
       )}
 
-      {books.length === 0 ? (
+      {onAdmin ? (
+        <AdminPanel />
+      ) : books.length === 0 ? (
         <div className={s.empty}>
           <p>No books yet.</p>
           {isAdmin && (
@@ -177,14 +200,14 @@ export default function App() {
         </>
       )}
 
-      {showUpload && (
+      {showUpload && !onAdmin && (
         <UploadModal
           onClose={() => setShowUpload(false)}
           onUploaded={handleUploaded}
         />
       )}
 
-      {activeBook && (
+      {activeBook && !onAdmin && (
         <AudioPlayer
           book={activeBook}
           playing={playing}
