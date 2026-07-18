@@ -229,6 +229,164 @@ Extends the Weber / Mackay / political-economy strand.
 
 ---
 
+# Part II — Histories & Primary Sources
+
+Aimed at the *Fall of Civilizations* register: eyewitness accounts, chronicles, laments,
+and royal inscriptions, weighted toward texts with **no commercial audiobook**. Sources
+here fall into three tiers, which matter a lot for ingest:
+
+- **Tier A — Gutenberg plain text.** Clean UTF-8, no OCR risk. Ingest as-is. Prefer these.
+- **Tier B — Scholarly open PDFs** (ISAC/Oriental Institute, ETCSL). Free and legitimate,
+  but ISAC files are 1930s–60s scans: **OCR quality varies and they carry an `oi.uchicago.edu`
+  watermark line on every page** that should be stripped before synthesis.
+- **Tier C — Internet Archive scans.** Many are *lending-library* items that cannot be
+  downloaded — only borrowed in-browser. Marked **⚠ lending** below; you'd need a
+  pre-1929 public-domain scan instead. Check before queuing.
+
+## 11. Mesopotamia, Assyria & the Ancient Near East
+
+The Sumer / Bronze Age Collapse material. Almost none of this exists as commercial audio.
+
+| Title | Note | Link |
+|---|---|---|
+| An Old Babylonian Version of the Gilgamesh Epic | Jastrow & Clay — Tier A | https://www.gutenberg.org/ebooks/11000 |
+| The Babylonian Legends of the Creation (Enuma Elish) | Budge — Tier A | https://www.gutenberg.org/ebooks/9914 |
+| The Chaldean Account of Genesis | George Smith, 1876 — Tier A | https://www.gutenberg.org/ebooks/60559 |
+| The Babylonian Story of the Deluge | Budge — Tier A | https://www.gutenberg.org/ebooks/7096 |
+| The Oldest Code of Laws in the World (Code of Hammurabi) | Tier A | https://www.gutenberg.org/ebooks/17150 |
+| Discoveries Among the Ruins of Nineveh and Babylon | Layard's excavation account — Tier A | https://www.gutenberg.org/ebooks/39897 |
+| Lamentation over the Destruction of Ur | S. N. Kramer, ISAC AS 12 — Tier B | https://isac.uchicago.edu/sites/default/files/uploads/shared/docs/as12.pdf |
+| The Annals of Sennacherib | Luckenbill, ISAC OIP 2 — royal inscriptions — Tier B | https://isac.uchicago.edu/sites/default/files/uploads/shared/docs/oip2.pdf |
+| Historical Prism Inscriptions of Ashurbanipal I | Piepkorn, ISAC AS 5 — Tier B | https://isac.uchicago.edu/sites/default/files/uploads/shared/docs/as5.pdf |
+| ISAC full open-access catalog | ~500 free scholarly PDFs; browse for more | https://isac.uchicago.edu/research/catalog-publications |
+
+### Sumerian literature via ETCSL (Oxford)
+
+The single best source for the city-laments read aloud in *Fall of Civilizations*.
+Clean HTML, no paywall, scholarly translations.
+
+| Text | Link |
+|---|---|
+| The Lament for Urim (Ur) | https://etcsl.orinst.ox.ac.uk/section2/tr222.htm |
+| The Lament for Sumer and Urim | https://etcsl.orinst.ox.ac.uk/section2/tr223.htm |
+| The Lament for Nibru (Nippur) | https://etcsl.orinst.ox.ac.uk/section2/tr224.htm |
+| The Lament for Unug (Uruk) | https://etcsl.orinst.ox.ac.uk/section2/tr225.htm |
+| Enki and Ninhursanga | https://etcsl.orinst.ox.ac.uk/section1/tr111.htm |
+| Enki and the World Order | https://etcsl.orinst.ox.ac.uk/section1/tr113.htm |
+| ETCSL full corpus index | https://etcsl.orinst.ox.ac.uk/ |
+
+## 12. Late Antiquity, Byzantium & the fall of Rome
+
+| Title | Author | Link |
+|---|---|---|
+| The Secret History of the Court of Justinian | Procopius | https://www.gutenberg.org/ebooks/12916 |
+| The Alexiad | Anna Komnene (Dawes trans.) | https://archive.org/details/alexiad_dawes |
+| Memoirs or Chronicle of the Fourth Crusade | Geoffroi de Villehardouin | https://www.gutenberg.org/ebooks/6032 |
+| The Roman History of Ammianus Marcellinus | Ammianus Marcellinus | https://www.gutenberg.org/ebooks/28587 |
+| The Origin and Deeds of the Goths | Jordanes | https://www.gutenberg.org/ebooks/14809 |
+| History of the Franks | Gregory of Tours | https://www.gutenberg.org/ebooks/74955 |
+| The Letters of Cassiodorus | Cassiodorus | https://www.gutenberg.org/ebooks/18590 |
+| Early Lives of Charlemagne | Einhard & the Monk of St Gall | https://www.gutenberg.org/ebooks/48870 |
+| The Wars of the Jews | Josephus | https://www.gutenberg.org/ebooks/2850 |
+| The Lives of the Twelve Caesars | Suetonius | https://www.gutenberg.org/ebooks/6400 |
+| The Histories (Vol. 1) | Polybius | https://www.gutenberg.org/ebooks/44125 |
+| Germania and Agricola | Tacitus | https://www.gutenberg.org/ebooks/9090 |
+| The History of Rome, Books 1–8 | Livy | https://www.gutenberg.org/ebooks/19725 |
+| The Geography (Vol. 1) | Strabo | https://www.gutenberg.org/ebooks/44884 |
+| Anabasis | Xenophon | https://www.gutenberg.org/ebooks/1170 |
+| The Anabasis of Alexander | Arrian | https://www.gutenberg.org/ebooks/46976 |
+
+## 13. Post-Roman Britain & the Norse world
+
+The *Fall of Civilizations* Roman Britain and Greenland Vikings episodes lean on these.
+
+| Title | Note | Link |
+|---|---|---|
+| On the Ruin of Britain (De Excidio) | Gildas — the key sub-Roman lament | https://www.gutenberg.org/ebooks/1949 |
+| The Anglo-Saxon Chronicle | | https://www.gutenberg.org/ebooks/657 |
+| History of the Britons (Historia Brittonum) | Nennius | https://www.gutenberg.org/ebooks/1972 |
+| Bede's Ecclesiastical History of England | | https://www.gutenberg.org/ebooks/38326 |
+| Heimskringla: Chronicle of the Kings of Norway | Snorri Sturluson | https://www.gutenberg.org/ebooks/598 |
+| The Sagas of Olaf Tryggvason and Harald the Tyrant | Snorri Sturluson | https://www.gutenberg.org/ebooks/22093 |
+| The Story of Burnt Njal (Njáls saga) | | https://www.gutenberg.org/ebooks/17919 |
+| The Story of the Volsungs (Völsunga saga) | | https://www.gutenberg.org/ebooks/1152 |
+| The Younger (Prose) Edda | Snorri Sturluson | https://www.gutenberg.org/ebooks/18947 |
+| The Danish History, Books I–IX | Saxo Grammaticus | https://www.gutenberg.org/ebooks/1150 |
+
+## 14. Travellers & outside eyewitnesses
+
+The genre that carries the podcast — outsiders describing a civilization at its height.
+
+| Title | Note | Link |
+|---|---|---|
+| The Travels of Marco Polo, Vol. 1 | | https://www.gutenberg.org/ebooks/10636 |
+| The Customs of Cambodia | Zhou Daguan on Angkor — the *only* eyewitness account ⚠ lending | https://archive.org/details/zhou-daguan-the-customs-of-cambodia-second-edition-the-siam-society-1992 |
+| The Travels of Sir John Mandeville | Medieval travel fantasia | https://www.gutenberg.org/ebooks/782 |
+| Historiale description de l'Afrique | Leo Africanus, 1556 — **French** | https://archive.org/details/hin-wel-all-00002247-001 |
+| The Principal Navigations & Voyages | Richard Hakluyt | https://www.gutenberg.org/ebooks/10673 |
+| Captain Cook's Journal, First Voyage | | https://www.gutenberg.org/ebooks/8106 |
+| Argonauts of the Western Pacific | Malinowski, Trobriand ethnography | https://www.gutenberg.org/ebooks/55822 |
+| Nihongi: Chronicles of Japan | Aston 1896 translation | https://archive.org/details/nihongi1asto |
+| Internet Medieval Sourcebook (Fordham) | Ibn Fadlan, Kritovoulos etc. — index works, deep links flaky | https://sourcebooks.fordham.edu/sbook.asp |
+
+## 15. The Americas — conquest & indigenous sources
+
+| Title | Note | Link |
+|---|---|---|
+| The Memoirs of the Conquistador Bernal Díaz, Vol. 1 | Eyewitness to Tenochtitlan | https://www.gutenberg.org/ebooks/32474 |
+| The Memoirs of the Conquistador Bernal Díaz, Vol. 2 | | https://www.gutenberg.org/ebooks/32475 |
+| A Brief Account of the Destruction of the Indies | Las Casas | https://www.gutenberg.org/ebooks/20321 |
+| The Popol Vuh | Spence edition — Tier A | https://www.gutenberg.org/ebooks/56550 |
+| Relation des choses de Yucatán | Diego de Landa — **French/Spanish only** on PG | https://www.gutenberg.org/ebooks/59539 |
+| Yucatan Before and After the Conquest | Landa in English ⚠ lending | https://archive.org/details/yucatanbeforeaft00land |
+| The First New Chronicle and Good Government | Guaman Poma — indigenous Andean ⚠ lending | https://archive.org/details/firstnewchronicl0000guam |
+| An Inca Account of the Conquest of Peru | Titu Cusi Yupanqui ⚠ lending | https://archive.org/details/incaaccountofcon0000yupa |
+| History of the Conquest of Peru | Prescott (secondary, 1847) | https://www.gutenberg.org/ebooks/1209 |
+| History of the Conquest of Mexico, Vol. 1 | Prescott | https://www.gutenberg.org/ebooks/59755 |
+| The Central Eskimo | Franz Boas | https://www.gutenberg.org/ebooks/42084 |
+| The Myth of Hiawatha and Other Oral Legends | Schoolcraft | https://www.gutenberg.org/ebooks/21620 |
+
+## 16. Epics & foundation texts
+
+| Title | Note | Link |
+|---|---|---|
+| The Kalevala | Finnish national epic | https://www.gutenberg.org/ebooks/5186 |
+| The Mabinogion | Welsh | https://www.gutenberg.org/ebooks/5160 |
+| The Song of Roland | | https://www.gutenberg.org/ebooks/391 |
+| The Nibelungenlied | | https://www.gutenberg.org/ebooks/1151 |
+| Chronicle of the Cid | | https://www.gutenberg.org/ebooks/8491 |
+| The Thousand and One Nights, Vol. 1 | Lane translation | https://www.gutenberg.org/ebooks/34206 |
+| The Mahabharata, Vol. 1 | Ganguli translation | https://www.gutenberg.org/ebooks/15474 |
+| The Song Celestial (Bhagavad Gita) | Edwin Arnold verse translation | https://www.gutenberg.org/ebooks/2388 |
+| The Dhammapada | | https://www.gutenberg.org/ebooks/2017 |
+| Buddhist Birth Stories (Jataka), Vol. 1 | | https://www.gutenberg.org/ebooks/51880 |
+| The Tale of Genji | Murasaki Shikibu, Waley trans. | https://www.gutenberg.org/ebooks/66057 |
+| Romance of the Three Kingdoms, Vol. 1 | Luo Guanzhong | https://www.gutenberg.org/ebooks/77416 |
+| 史記 (Records of the Grand Historian) | Sima Qian — **Chinese original, not a translation** | https://www.gutenberg.org/ebooks/24226 |
+| The Egyptian Book of the Dead | | https://www.gutenberg.org/ebooks/69566 |
+| Sacred Books of the East | Müller series sampler | https://www.gutenberg.org/ebooks/12894 |
+
+## 17. Where to hunt for more
+
+Archives worth mining directly when you want something specific:
+
+| Archive | Strength | Link |
+|---|---|---|
+| ETCSL (Oxford) | Complete Sumerian literary corpus in translation | https://etcsl.orinst.ox.ac.uk/ |
+| ISAC / Oriental Institute | ~500 free PDFs: Assyrian, Egyptian, Hittite, Persian | https://isac.uchicago.edu/research/catalog-publications |
+| Livius.org | Curated ancient-source translations & commentary | https://www.livius.org/ |
+| Perseus Digital Library | Greek/Latin originals + translations | https://www.perseus.tufts.edu/hopper/ |
+| Fordham Internet History Sourcebooks | Medieval/Byzantine excerpts | https://sourcebooks.fordham.edu/sbook.asp |
+| Internet Archive | Out-of-print scans; check lending status | https://archive.org/ |
+
+**Notable gaps** — worth wanting, but no clean free English text found:
+Ibn Battuta's *Rihla*, the Tarikh al-Sudan / Tarikh al-Fattash (Songhai), Kritovoulos on
+1453, Garcilaso de la Vega's *Royal Commentaries*, the Amarna letters, and the *Vinland
+Sagas*. These are all still in-copyright in their good modern translations. Older
+public-domain translations exist for several — they need hunting case by case.
+
+---
+
 ### Notes on the paywalled entries
 - **Prospect Theory** and **Science and Complexity** are listed for completeness (both
   are canonical) but their canonical hosts block direct download. Search for an open
