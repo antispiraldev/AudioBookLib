@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { fetchAdminSummary } from "../api";
+import { fetchAdminSummary, fetchAdminBooks } from "../api";
+import BooksTable from "./BooksTable";
 import s from "./AdminPanel.module.css";
 
 // Order + display labels for the status strip. Kept in sync with the backend's
@@ -15,11 +16,17 @@ const STATUS_META = [
 
 export default function AdminPanel() {
   const [summary, setSummary] = useState(null);
+  const [books, setBooks] = useState([]);
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
     try {
-      setSummary(await fetchAdminSummary());
+      const [sum, bks] = await Promise.all([
+        fetchAdminSummary(),
+        fetchAdminBooks(),
+      ]);
+      setSummary(sum);
+      setBooks(bks);
       setError(null);
     } catch (e) {
       setError(e.message);
@@ -61,6 +68,11 @@ export default function AdminPanel() {
             </div>
           );
         })}
+      </div>
+
+      <div className={s.section}>
+        <h3 className={s.sectionTitle}>Books</h3>
+        <BooksTable books={books} />
       </div>
     </div>
   );
