@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Book, PipelineEvent, Segment, User
 from ..schemas import AdminBookRow, PipelineEventOut
+from ..services.monitor import worker_stats
 from .auth import require_admin
 
 router = APIRouter(dependencies=[Depends(require_admin)])
@@ -93,6 +94,14 @@ def admin_books(db: Session = Depends(get_db)):
         )
         for book, owner_email, total, ready, error in rows
     ]
+
+
+@router.get("/workers")
+def admin_workers():
+    """Live Celery/queue snapshot: broker reachability, default-queue depth,
+    and per-worker concurrency + running tasks. Sync on purpose — the inspect
+    broadcast blocks up to ~1s, and FastAPI runs sync routes in a thread."""
+    return worker_stats()
 
 
 @router.get("/events", response_model=List[PipelineEventOut])

@@ -1,7 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
-import { fetchAdminSummary, fetchAdminBooks, fetchAdminEvents } from "../api";
+import {
+  fetchAdminSummary,
+  fetchAdminBooks,
+  fetchAdminEvents,
+  fetchAdminWorkers,
+} from "../api";
 import BooksTable from "./BooksTable";
 import EventsPanel from "./EventsPanel";
+import WorkersPanel from "./WorkersPanel";
 import s from "./AdminPanel.module.css";
 
 // Order + display labels for the status strip. Kept in sync with the backend's
@@ -19,18 +25,21 @@ export default function AdminPanel() {
   const [summary, setSummary] = useState(null);
   const [books, setBooks] = useState([]);
   const [events, setEvents] = useState([]);
+  const [workers, setWorkers] = useState(null);
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
     try {
-      const [sum, bks, evs] = await Promise.all([
+      const [sum, bks, evs, wrk] = await Promise.all([
         fetchAdminSummary(),
         fetchAdminBooks(),
         fetchAdminEvents({ limit: 100 }),
+        fetchAdminWorkers(),
       ]);
       setSummary(sum);
       setBooks(bks);
       setEvents(evs);
+      setWorkers(wrk);
       setError(null);
     } catch (e) {
       setError(e.message);
@@ -73,6 +82,8 @@ export default function AdminPanel() {
           );
         })}
       </div>
+
+      <WorkersPanel workers={workers} />
 
       <div className={s.section}>
         <h3 className={s.sectionTitle}>Books</h3>

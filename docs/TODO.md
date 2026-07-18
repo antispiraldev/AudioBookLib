@@ -12,7 +12,7 @@ The approved 6-PR roadmap; PRs 1–3 merged and live at `#/admin` as of 2026-07-
 Remaining three are on hold — each needs the live broker and both droplets to
 verify, so they can't be built blind.
 
-- [ ] PR4 — concurrency stats: `GET /api/admin/workers` via Celery `inspect`
+- [x] PR4 — concurrency stats: `GET /api/admin/workers` via Celery `inspect`
       over the broker, plus Redis queue depth
 - [ ] PR5 — resource warnings: psutil for the web droplet locally; worker
       self-reports mem/swap/load via periodic Celery heartbeat → Redis;

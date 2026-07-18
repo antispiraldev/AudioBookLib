@@ -1,0 +1,98 @@
+.section {
+  margin-top: 28px;
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.queue {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.queueBusy {
+  color: #e6b43c;
+}
+.warn {
+  padding: 10px 14px;
+  border: 1px solid rgba(224, 82, 82, 0.4);
+  border-radius: var(--radius);
+  background: rgba(224, 82, 82, 0.08);
+  color: var(--danger);
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3dbb6e;
+}
+.name {
+  font-weight: 600;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.meta {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.cardBody {
+  padding: 9px 14px;
+  font-size: 13px;
+}
+.idle {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.task {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 0;
+}
+.taskName {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.taskArgs {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.taskTime {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.counts {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+}

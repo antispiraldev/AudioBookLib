@@ -111,6 +111,12 @@ export async function fetchAdminBooks() {
   return r.json();
 }
 
+export async function fetchAdminWorkers() {
+  const r = await fetch(`${BASE}/admin/workers`);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
 export async function fetchAdminEvents({ level, limit = 100 } = {}) {
   const params = new URLSearchParams();
   if (level) params.set("level", level);
