@@ -4,12 +4,15 @@ Every route here is gated by `require_admin`. This module is the foundation
 for the admin panel; later PRs add books/errors/workers/resources/logs
 endpoints alongside the summary below.
 """
+from typing import List
+
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Book
+from ..models import Book, Segment, User
+from ..schemas import AdminBookRow
 from .auth import require_admin
 
 router = APIRouter(dependencies=[Depends(require_admin)])
@@ -39,3 +42,54 @@ def pipeline_summary(db: Session = Depends(get_db)):
         # Tolerate any unexpected/legacy status value rather than dropping it.
         counts[status] = counts.get(status, 0) + count
     return {"total": sum(counts.values()), "by_status": counts}
+
+
+@router.get("/books", response_model=List[AdminBookRow])
+def admin_books(db: Session = Depends(get_db)):
+    """Every book as a lightweight table row — status, owner, and segment
+    progress counts. Deliberately excludes segment text/audio payloads; the
+    per-status counts are aggregated in SQL so this stays cheap for the poll."""
+    # Segment progress per book, computed in one grouped query.
+    seg = (
+        db.query(
+            Segment.book_id.label("book_id"),
+            func.count(Segment.id).label("total"),
+            func.sum(case((Segment.status == "ready", 1), else_=0)).label("ready"),
+            func.sum(case((Segment.status == "error", 1), else_=0)).label("error"),
+        )
+        .group_by(Segment.book_id)
+        .subquery()
+    )
+
+    rows = (
+        db.query(
+            Book,
+            User.email.label("owner_email"),
+            seg.c.total,
+            seg.c.ready,
+            seg.c.error,
+        )
+        .outerjoin(User, Book.uploaded_by_user_id == User.id)
+        .outerjoin(seg, seg.c.book_id == Book.id)
+        .order_by(Book.created_at.desc())
+        .all()
+    )
+
+    return [
+        AdminBookRow(
+            id=book.id,
+            title=book.title,
+            author=book.author,
+            status=book.status,
+            genre=book.genre,
+            year=book.year,
+            hidden=book.hidden,
+            page_count=book.page_count,
+            created_at=book.created_at,
+            owner_email=owner_email,
+            segments_total=total or 0,
+            segments_ready=ready or 0,
+            segments_error=error or 0,
+        )
+        for book, owner_email, total, ready, error in rows
+    ]

@@ -104,3 +104,9 @@ export async function fetchAdminSummary() {
   if (!r.ok) throw new Error(await parseError(r));
   return r.json();
 }
+
+export async function fetchAdminBooks() {
+  const r = await fetch(`${BASE}/admin/books`);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
