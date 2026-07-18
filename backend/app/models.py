@@ -34,7 +34,13 @@ class Book(Base):
     notes = Column(Text, nullable=True)
     # admin-only: per-book narration style/context passed to the TTS model
     tts_instructions = Column(Text, nullable=True)
+    # who uploaded the book; null for legacy books whose uploader is unknown
+    uploaded_by_user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    uploaded_by = relationship("User")
 
     segments = relationship(
         "Segment",
@@ -42,6 +48,27 @@ class Book(Base):
         cascade="all, delete-orphan",
         order_by="Segment.order",
     )
+
+
+class PipelineEvent(Base):
+    """A notable pipeline occurrence — mostly errors and warnings raised while
+    ingesting or synthesizing a book. Written from both the web and worker
+    droplets (they share this Postgres), so worker-side failures surface in the
+    admin panel without the web tier ever reaching the worker directly."""
+
+    __tablename__ = "pipeline_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # Nullable + SET NULL: an event outlives the book it referred to (e.g. a
+    # book deleted after erroring) rather than being cascaded away.
+    book_id = Column(
+        Integer, ForeignKey("books.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    task = Column(String, nullable=False)  # e.g. "ingest_book", "synthesize_segment"
+    level = Column(String, nullable=False, default="error", index=True)  # error | warning | info
+    message = Column(Text, nullable=False)
+    traceback = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
 class Segment(Base):

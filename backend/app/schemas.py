@@ -54,6 +54,34 @@ class BookOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AdminBookRow(BaseModel):
+    """One row in the admin books table — lightweight, no segment payloads."""
+    id: int
+    title: str
+    author: Optional[str] = None
+    status: str
+    genre: Optional[str] = None
+    year: Optional[int] = None
+    hidden: bool = False
+    page_count: Optional[int] = None
+    created_at: datetime
+    owner_email: Optional[str] = None
+    segments_total: int = 0
+    segments_ready: int = 0
+    segments_error: int = 0
+
+
+class PipelineEventOut(BaseModel):
+    id: int
+    book_id: Optional[int] = None
+    book_title: Optional[str] = None
+    task: str
+    level: str
+    message: str
+    traceback: Optional[str] = None
+    created_at: datetime
+
+
 class BookUpdate(BaseModel):
     title: Optional[str] = None
     author: Optional[str] = None

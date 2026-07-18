@@ -53,12 +53,13 @@ def get_book(
     return book
 
 
-@router.post("/", response_model=BookOut, dependencies=[Depends(require_admin)])
+@router.post("/", response_model=BookOut)
 async def upload_book(
     file: UploadFile = File(...),
     title: str = Form(...),
     author: Optional[str] = Form(None),
     db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
 ):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(400, "Only PDF files are supported")
@@ -67,7 +68,13 @@ async def upload_book(
     with open(pdf_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    book = Book(title=title, author=author, filename=file.filename, pdf_path=pdf_path)
+    book = Book(
+        title=title,
+        author=author,
+        filename=file.filename,
+        pdf_path=pdf_path,
+        uploaded_by_user_id=admin.id,
+    )
     db.add(book)
     db.commit()
     db.refresh(book)

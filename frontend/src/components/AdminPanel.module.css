@@ -56,3 +56,11 @@
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
+.section {
+  margin-top: 28px;
+}
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
