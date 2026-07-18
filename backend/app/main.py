@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from .database import init_db
-from .routers import books, audio, auth
+from .routers import books, audio, auth, admin
 
 
 @asynccontextmanager
@@ -35,3 +35,4 @@ app.add_middleware(
 app.include_router(books.router, prefix="/api/books", tags=["books"])
 app.include_router(audio.router, prefix="/api/audio", tags=["audio"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])

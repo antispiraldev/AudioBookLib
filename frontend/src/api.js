@@ -96,3 +96,11 @@ export async function logout() {
 export function loginUrl() {
   return `${BASE}/auth/login`;
 }
+
+// --- Admin panel ---
+
+export async function fetchAdminSummary() {
+  const r = await fetch(`${BASE}/admin/summary`);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}

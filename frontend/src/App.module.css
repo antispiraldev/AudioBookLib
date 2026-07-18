@@ -45,6 +45,24 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.navLink:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
 .authBtn,
 .authLink {
   display: inline-flex;
