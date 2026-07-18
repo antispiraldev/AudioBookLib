@@ -33,9 +33,12 @@ Web droplet:
 Worker droplet: same pull, then
 `docker compose -f docker-compose.worker.yml up -d --build`.
 
-Run droplet commands through `deploy/run_remote.sh '<cmd>'`, which logs every
-invocation to `deploy/remote_history.log`. Frontend-only changes need just
-`docker compose up -d --build frontend`.
+Droplet commands go through `deploy/run_remote.sh '<cmd>'` (web) and
+`deploy/run_remote_worker.sh '<cmd>'` (worker, reached via the web droplet as an
+SSH ProxyJump bastion). Both are **untracked, local-only** — a fresh clone won't
+have them. They append every command verbatim to `deploy/remote_history.log`, so
+never put a secret on a droplet command line; read it from `.env` on the box
+instead. Frontend-only changes need just `docker compose up -d --build frontend`.
 
 Migrations apply themselves: `init_db()` runs `alembic upgrade head` in the
 FastAPI lifespan hook, so a backend restart migrates the DB. Take a `pg_dump`
@@ -52,8 +55,13 @@ before deploying a migration.
   the VPC at `10.120.0.2` and the internet via NAT through the web droplet.
   Anything it needs to report must travel through shared Redis or Postgres —
   never direct HTTP.
-- **Redis has no auth.** It binds to `DB_BIND_IP` (loopback by default, the VPC
-  IP in production). Never bind it to a public interface.
+- **`POSTGRES_PASSWORD` and `REDIS_PASSWORD` are mandatory** — compose uses
+  `${VAR:?}` with no default, so it refuses to start rather than fall back. That
+  is deliberate: a defaulted password (`voxshelf`) was once live in production
+  and published in this public repo. Both are set in `.env` on each droplet and
+  must match across the two. Redis runs with `--requirepass`; it still binds to
+  `DB_BIND_IP` (loopback locally, the VPC IP in production) and should never be
+  bound to a public interface.
 - **`voxshelf` is load-bearing** in the Postgres user/db name and the
   `/opt/voxshelf/AudioBookLib` droplet path. The app renamed to Aedo; these
   didn't, because renaming the DB would orphan the volume.

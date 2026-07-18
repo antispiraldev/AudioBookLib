@@ -9,3 +9,10 @@ dist/
 migration.sql
 backend/scripts/preview_out/
 tts_samples/
+
+# Personal droplet tooling — local reference only, deliberately untracked.
+# remote_history.log records every command run against the droplets verbatim,
+# which is a poor thing to publish; the runners hold host addresses.
+deploy/run_remote.sh
+deploy/run_remote_worker.sh
+deploy/remote_history.log
