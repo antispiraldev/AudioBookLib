@@ -19,9 +19,9 @@ services:
     env_file: .env
     environment:
       - PYTHONPATH=/app
-      - CELERY_BROKER_URL=redis://10.120.0.2:6379/0
-      - CELERY_RESULT_BACKEND=redis://10.120.0.2:6379/0
-      - DATABASE_URL=postgresql://voxshelf:voxshelf@10.120.0.2:5432/voxshelf
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@10.120.0.2:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@10.120.0.2:6379/0
+      - DATABASE_URL=postgresql://voxshelf:${POSTGRES_PASSWORD}@10.120.0.2:5432/voxshelf
       - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
       - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
       - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
