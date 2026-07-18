@@ -71,6 +71,17 @@ class AdminBookRow(BaseModel):
     segments_error: int = 0
 
 
+class PipelineEventOut(BaseModel):
+    id: int
+    book_id: Optional[int] = None
+    book_title: Optional[str] = None
+    task: str
+    level: str
+    message: str
+    traceback: Optional[str] = None
+    created_at: datetime
+
+
 class BookUpdate(BaseModel):
     title: Optional[str] = None
     author: Optional[str] = None

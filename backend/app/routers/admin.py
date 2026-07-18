@@ -4,15 +4,15 @@ Every route here is gated by `require_admin`. This module is the foundation
 for the admin panel; later PRs add books/errors/workers/resources/logs
 endpoints alongside the summary below.
 """
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Book, Segment, User
-from ..schemas import AdminBookRow
+from ..models import Book, PipelineEvent, Segment, User
+from ..schemas import AdminBookRow, PipelineEventOut
 from .auth import require_admin
 
 router = APIRouter(dependencies=[Depends(require_admin)])
@@ -92,4 +92,39 @@ def admin_books(db: Session = Depends(get_db)):
             segments_error=error or 0,
         )
         for book, owner_email, total, ready, error in rows
+    ]
+
+
+@router.get("/events", response_model=List[PipelineEventOut])
+def admin_events(
+    level: Optional[str] = None,
+    book_id: Optional[int] = None,
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    """Recent pipeline events (errors/warnings), newest first. Optionally
+    filtered by level or book. Joins the book title for display; events whose
+    book was since deleted keep a null title."""
+    q = (
+        db.query(PipelineEvent, Book.title)
+        .outerjoin(Book, PipelineEvent.book_id == Book.id)
+    )
+    if level:
+        q = q.filter(PipelineEvent.level == level)
+    if book_id is not None:
+        q = q.filter(PipelineEvent.book_id == book_id)
+    rows = q.order_by(PipelineEvent.created_at.desc()).limit(limit).all()
+
+    return [
+        PipelineEventOut(
+            id=ev.id,
+            book_id=ev.book_id,
+            book_title=title,
+            task=ev.task,
+            level=ev.level,
+            message=ev.message,
+            traceback=ev.traceback,
+            created_at=ev.created_at,
+        )
+        for ev, title in rows
     ]

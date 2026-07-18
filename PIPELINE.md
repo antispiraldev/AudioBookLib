@@ -48,6 +48,23 @@ Segment: pending → processing → ready
                               ↘ error
 ```
 
+## Observability (admin panel)
+
+The pipeline records notable occurrences to a `pipeline_events` table
+(errors + warnings), written from both the web and worker droplets — they
+share Postgres, so worker-side failures surface without the web tier reaching
+the worker directly:
+
+- `ingest_book` — records a **warning** when a PDF looks scanned (needs OCR) or
+  when chunks fall back to heuristic text (LLM polish unavailable), and an
+  **error** (with traceback) if extraction fails.
+- `synthesize_segment` — records an **error** (with traceback) per failed segment.
+- A Celery `task_failure` signal catches anything unhandled as a backstop.
+
+Admins read these at `GET /api/admin/events` and in the admin panel's
+"Pipeline events" list. Book status counts, the books table, and events all
+back the `#/admin` view.
+
 ## Services
 
 | Service         | Role                                              |

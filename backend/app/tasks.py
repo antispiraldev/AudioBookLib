@@ -1,12 +1,15 @@
 import logging
 import os
+import traceback as tb
 
 from celery import chord, group
+from celery.signals import task_failure
 
 from .celery_app import celery
 from .database import SessionLocal
 from .models import Book, Segment
 from .services.clean import clean_many
+from .services.events import record_pipeline_event
 from .services.pdf import extract_text_chunks, looks_scanned
 from .services.tts import synthesize
 from .services import storage
@@ -43,12 +46,22 @@ def ingest_book(book_id: int) -> None:
                 "Book %s looks scanned: %d chars across %d pages — likely needs OCR",
                 book_id, total_chars, page_count,
             )
+            record_pipeline_event(
+                book_id, "ingest_book", "warning",
+                f"Looks scanned: only {total_chars} chars across {page_count} "
+                f"pages — likely needs OCR.",
+            )
 
         texts, fallbacks = clean_many([c.text for c in chunks])
         if fallbacks:
             log.warning(
                 "Book %s: %d/%d chunks kept heuristic text (LLM polish unavailable)",
                 book_id, fallbacks, len(chunks),
+            )
+            record_pipeline_event(
+                book_id, "ingest_book", "warning",
+                f"{fallbacks}/{len(chunks)} chunks kept heuristic text "
+                f"(LLM polish unavailable).",
             )
 
         for i, (chunk, text) in enumerate(zip(chunks, texts)):
@@ -62,8 +75,12 @@ def ingest_book(book_id: int) -> None:
 
         book.status = "review"
         db.commit()
-    except Exception:
+    except Exception as e:
         log.exception("Text extraction failed for book %s", book_id)
+        record_pipeline_event(
+            book_id, "ingest_book", "error",
+            f"{type(e).__name__}: {e}", tb.format_exc(),
+        )
         _set_error(db, book_id)
     finally:
         db.close()
@@ -134,8 +151,12 @@ def synthesize_segment(segment_id: int, book_id: int) -> str:
         seg.status = "ready"
         db.commit()
         return "ready"
-    except Exception:
+    except Exception as e:
         log.exception("TTS failed for segment %s (book %s)", segment_id, book_id)
+        record_pipeline_event(
+            book_id, "synthesize_segment", "error",
+            f"Segment {segment_id}: {type(e).__name__}: {e}", tb.format_exc(),
+        )
         try:
             db.rollback()
             seg = db.get(Segment, segment_id)
@@ -172,3 +193,17 @@ def _set_error(db, book_id: int) -> None:
     if book:
         book.status = "error"
         db.commit()
+
+
+@task_failure.connect
+def _on_task_failure(sender=None, exception=None, einfo=None, args=None, **_):
+    """Defense-in-depth: the tasks above catch their own errors, but this
+    records anything that escapes unhandled so it still lands in the panel.
+    A book_id first positional arg is captured when present."""
+    book_id = args[0] if args and isinstance(args[0], int) else None
+    task_name = getattr(sender, "name", None) or "unknown"
+    record_pipeline_event(
+        book_id, task_name, "error",
+        f"{type(exception).__name__}: {exception}" if exception else "Task failed",
+        str(einfo) if einfo else None,
+    )
