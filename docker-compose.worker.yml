@@ -1,0 +1,29 @@
+# Dedicated worker droplet — runs ONLY the Celery worker.
+#
+# The worker droplet has no public IP; its outbound internet (OpenAI, R2) is
+# NAT'd through the web droplet. The broker (Redis) and database (Postgres) run
+# on the web droplet and are reached over the VPC at 10.120.0.2.
+#
+# Bring up with:
+#   docker compose -f docker-compose.worker.yml up -d --build
+#
+# Requires the same .env as the web droplet (R2 + OpenAI creds); the DB/broker
+# URLs below intentionally override whatever .env contains.
+services:
+  worker:
+    build: ./backend
+    command: celery -A app.tasks worker --loglevel=info --concurrency=2
+    volumes:
+      - ./storage:/app/storage
+      - ./backend:/app
+    env_file: .env
+    environment:
+      - PYTHONPATH=/app
+      - CELERY_BROKER_URL=redis://10.120.0.2:6379/0
+      - CELERY_RESULT_BACKEND=redis://10.120.0.2:6379/0
+      - DATABASE_URL=postgresql://voxshelf:voxshelf@10.120.0.2:5432/voxshelf
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME:-audiobooklib}
+    restart: unless-stopped

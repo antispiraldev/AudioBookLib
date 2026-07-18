@@ -1,13 +1,24 @@
 services:
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
+    # Published only on DB_BIND_IP so the dedicated worker droplet can reach the
+    # broker over the VPC. Defaults to loopback for local dev; the web droplet
+    # sets DB_BIND_IP=10.120.0.2 (its VPC interface) in .env. Never bind this to
+    # a public interface — Redis has no auth.
+    ports:
+      - "${DB_BIND_IP:-127.0.0.1}:6379:6379"
 
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=voxshelf
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-voxshelf}
       - POSTGRES_DB=voxshelf
+    # Same VPC-only exposure as redis (see note above).
+    ports:
+      - "${DB_BIND_IP:-127.0.0.1}:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -18,6 +29,7 @@ services:
 
   backend:
     build: ./backend
+    restart: unless-stopped
     volumes:
       - ./storage:/app/storage
       - ./backend:/app
@@ -39,7 +51,16 @@ services:
 
   worker:
     build: ./backend
-    command: celery -A app.tasks worker --loglevel=info --concurrency=5
+    restart: unless-stopped
+    # In production the worker runs on a dedicated droplet (docker-compose.worker.yml),
+    # not here — this service is behind the "worker" profile so `docker compose up -d`
+    # on the web droplet does NOT start it. For an all-in-one local stack, run:
+    #   docker compose --profile worker up -d
+    profiles: ["worker"]
+    # concurrency=2: ingest loads large PDFs into memory (PyMuPDF block/span
+    # dicts balloon 20-25MB PDFs to hundreds of MB); >2 in parallel OOMs the
+    # 2GB droplet and 504s the web tier. Raise only alongside more RAM/swap.
+    command: celery -A app.tasks worker --loglevel=info --concurrency=2
     volumes:
       - ./storage:/app/storage
       - ./backend:/app
@@ -61,6 +82,7 @@ services:
 
   frontend:
     build: ./frontend
+    restart: unless-stopped
     ports:
       - "80:80"
     depends_on:

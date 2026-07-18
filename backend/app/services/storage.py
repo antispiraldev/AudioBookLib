@@ -104,3 +104,26 @@ def delete_prefix(prefix: str) -> None:
     for page in paginator.paginate(Bucket=_bucket(), Prefix=prefix):
         for obj in page.get("Contents", []):
             client.delete_object(Bucket=_bucket(), Key=obj["Key"])
+
+
+def archive_prefix(src_prefix: str, dst_prefix: str) -> int:
+    """Move every object under src_prefix to dst_prefix (server-side copy +
+    delete). Returns the count moved; no-op (0) if R2 is off."""
+    client = _get_client()
+    if not client:
+        return 0
+    bucket = _bucket()
+    moved = 0
+    paginator = client.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=bucket, Prefix=src_prefix):
+        for obj in page.get("Contents", []):
+            key = obj["Key"]
+            dst = dst_prefix + key[len(src_prefix):]
+            client.copy_object(
+                Bucket=bucket,
+                CopySource={"Bucket": bucket, "Key": key},
+                Key=dst,
+            )
+            client.delete_object(Bucket=bucket, Key=key)
+            moved += 1
+    return moved

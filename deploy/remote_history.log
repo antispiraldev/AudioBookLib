@@ -33,3 +33,325 @@ print(\"queued 12 books\")
 2026-07-14 03:27:10 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT version_num FROM alembic_version" && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT column_name FROM information_schema.columns WHERE table_name='segments' AND column_name='chapter_title'" && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT count(*) FROM books"
 2026-07-14 03:27:45 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT id, title, hidden FROM books WHERE title ILIKE '%modest%'"
 2026-07-14 03:28:03 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "UPDATE books SET hidden = true WHERE id = 11 RETURNING id, title, hidden"
+2026-07-14 03:33:06 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT id, title, status, hidden, pdf_path, (SELECT count(*) FROM segments s WHERE s.book_id=b.id) AS segs FROM books b WHERE title ILIKE '%prince%'"
+2026-07-14 03:33:36 UTC | exit 2 | cd /opt/voxshelf/AudioBookLib && echo "=== host PDF present? ===" && ls -la storage/pdfs/the_prince.pdf 2>&1 && echo "=== container sees it? ===" && docker compose exec -T backend ls -la /app/storage/pdfs/the_prince.pdf 2>&1 && echo "=== R2 enabled in container? ===" && docker compose exec -T backend python -c "from app.services import storage; print(\"R2 enabled:\", storage.is_enabled())" && echo "=== a Prince segment audio_path ===" && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT audio_path FROM segments WHERE book_id=13 ORDER BY \"order\" LIMIT 1"
+2026-07-14 03:34:29 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && echo "R2 enabled:" && docker compose exec -T backend python -c "from app.services import storage; print(storage.is_enabled())"; echo "sample audio_path:" && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT audio_path FROM segments WHERE book_id=13 ORDER BY \"order\" LIMIT 1"; echo "storage/pdfs dir on host:" && ls storage/pdfs/ 2>&1 | head
+2026-07-14 03:35:59 UTC | exit 0 | base64 -d > /opt/voxshelf/AudioBookLib/storage/pdfs/the_prince.pdf && md5sum /opt/voxshelf/AudioBookLib/storage/pdfs/the_prince.pdf && ls -la /opt/voxshelf/AudioBookLib/storage/pdfs/the_prince.pdf
+2026-07-14 03:36:42 UTC | exit 0 | cat > /opt/voxshelf/AudioBookLib/backend/reprocess_prince.py && cd /opt/voxshelf/AudioBookLib && docker compose exec -T backend python reprocess_prince.py; rm -f /opt/voxshelf/AudioBookLib/backend/reprocess_prince.py
+2026-07-14 03:37:07 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:37:23 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:37:39 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:37:55 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:38:12 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:38:28 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:38:43 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:38:59 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:39:16 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:39:32 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:39:48 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:40:04 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:40:20 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:40:36 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:40:52 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:41:08 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:41:25 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:41:41 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:41:57 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:42:13 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:42:29 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:42:45 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:43:01 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:43:17 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:43:33 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:43:49 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:44:05 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:44:21 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:44:38 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:44:54 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:45:10 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:45:26 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:45:42 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:45:58 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:46:14 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:46:30 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:46:47 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:47:03 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:47:18 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose logs --tail 25 worker 2>&1 | tail -25
+2026-07-14 03:47:51 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:48:12 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:48:33 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:48:55 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:49:16 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:49:37 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:49:58 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-14 03:50:19 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -tAc "SELECT status FROM books WHERE id=13"
+2026-07-15 00:57:01 UTC | exit 1 | docker exec $(docker ps -qf name=db) psql -U postgres -d audiobooklib -c "select id, title, author from books order by id;"
+2026-07-15 00:57:03 UTC | exit 0 | docker ps --format "{{.Names}}"
+2026-07-15 00:57:06 UTC | exit 2 | docker exec audiobooklib-postgres-1 psql -U postgres -d audiobooklib -c "select id, title, author from books order by id;"
+2026-07-15 00:57:09 UTC | exit 0 | docker exec audiobooklib-postgres-1 env | grep -i POSTGRES_
+2026-07-15 00:57:11 UTC | exit 0 | docker exec audiobooklib-postgres-1 psql -U voxshelf -d voxshelf -c "select id, title, author, status from books order by id;"
+2026-07-15 01:09:35 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && git pull && git log --oneline -2
+2026-07-15 01:13:57 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose up -d --build
+2026-07-15 01:14:13 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T worker python -c "
+from app.celery_app import celery
+from app.services.clean import CLEAN_CONCURRENCY, clean_many
+print('CLEAN_CONCURRENCY:', CLEAN_CONCURRENCY)
+print('visibility_timeout:', celery.conf.broker_transport_options)
+print('clean_many wired:', callable(clean_many))
+"
+2026-07-15 01:14:21 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose ps --format '{{.Service}} {{.State}}'
+2026-07-15 01:14:32 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose logs worker --since 3m 2>&1 | grep -iE 'error|traceback|critical' | head -5; echo '(end)'
+2026-07-17 09:51:10 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -t -c "SELECT id, status, left(pdf_path, 60) FROM books ORDER BY id;"
+2026-07-17 09:51:24 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && echo '=== storage volume mount? ===' && grep -A15 'backend:' docker-compose.yml | grep -iE 'volume|storage' ; echo '=== PDFs on disk in backend container ===' && docker compose exec -T backend sh -c 'ls -la storage/pdfs/ 2>/dev/null | head -30; echo TOTAL: $(ls storage/pdfs/ 2>/dev/null | wc -l)'
+2026-07-17 09:59:08 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && git pull && docker compose up -d --build
+2026-07-17 09:59:22 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T backend python -c "
+from app.main import app
+routes = [r.path for r in app.routes if 'reprocess' in getattr(r,'path','')]
+print('reprocess routes:', routes)
+from app.services.storage import pdf_available
+print('pdf_available wired:', callable(pdf_available))
+"
+2026-07-17 09:59:56 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && ls -la storage/pdfs/ 2>/dev/null
+2026-07-17 09:59:57 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T backend python -c "
+from app.services import storage
+c = storage._get_client()
+if not c: print('R2 off'); raise SystemExit
+r = c.list_objects_v2(Bucket=storage._bucket(), Prefix='pdfs/')
+for o in r.get('Contents', []): print(o['Key'], o['Size'])
+"
+2026-07-17 10:01:21 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && ls docker-compose.yml && grep -n 'storage' docker-compose.yml && echo '--- host storage dir ---' && ls -d /opt/voxshelf/AudioBookLib/storage/pdfs 2>/dev/null || echo 'not at repo-root/storage'; find /opt/voxshelf -maxdepth 3 -type d -name pdfs 2>/dev/null
+2026-07-17 10:02:09 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && echo 'files on host volume:' && ls storage/pdfs/ | wc -l && echo '--- container sees:' && docker compose exec -T backend sh -c 'ls storage/pdfs/ | wc -l'
+2026-07-17 10:03:00 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T backend python /app/storage/restore_r2.py
+2026-07-17 10:03:16 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T backend python -c "
+from app.database import SessionLocal
+from app.models import Book
+from app.services import storage
+db = SessionLocal()
+books = db.query(Book).order_by(Book.id).all()
+r2 = sum(1 for b in books if storage.is_r2_key(b.pdf_path))
+avail = sum(1 for b in books if storage.pdf_available(b.pdf_path))
+print(f'books: {len(books)}  pdf_path=R2 key: {r2}  retrievable: {avail}')
+bad = [(b.id, b.pdf_path) for b in books if not storage.pdf_available(b.pdf_path)]
+print('unretrievable:', bad or 'none')
+db.close()
+" && rm -f storage/restore_r2.py && echo 'temp script removed'
+2026-07-17 10:17:18 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && git pull && docker compose up -d --build
+2026-07-17 10:17:29 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T backend python -c "
+from app.services import storage
+print('archive_prefix wired:', callable(storage.archive_prefix))
+import inspect
+from app.routers import books
+src = inspect.getsource(books._clear_generated)
+print('reprocess archives:', 'archive_prefix' in src)
+print('delete purges archive:', 'audio-archive' in inspect.getsource(books.delete_book))
+"
+2026-07-17 10:47:04 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && git pull && docker compose up -d --build
+2026-07-17 10:47:18 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T frontend sh -c 'grep -ol "indeterminate" /usr/share/nginx/html/assets/*.css 2>/dev/null || grep -rl "indeterminate" /app/dist/assets/*.css 2>/dev/null || echo checking; ls /usr/share/nginx/html/assets/ 2>/dev/null | head'
+2026-07-17 10:58:06 UTC | exit 255 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -c "UPDATE books SET hidden = true WHERE id = 26;" && docker compose exec -T postgres psql -U voxshelf -d voxshelf -t -c "SELECT id, hidden, title FROM books WHERE id = 26;"
+2026-07-17 11:00:28 UTC | exit 0 | whoami
+2026-07-17 11:00:56 UTC | exit 255 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -c "UPDATE books SET hidden = true WHERE id = 26;" && docker compose exec -T postgres psql -U voxshelf -d voxshelf -t -c "SELECT id, hidden, title FROM books WHERE id = 26;" && echo '--- container status ---' && docker compose ps --format '{{.Service}} {{.State}} {{.Status}}'
+2026-07-17 11:01:20 UTC | exit 0 | uptime && echo '--- mem ---' && free -h && echo '--- top procs by mem ---' && ps aux --sort=-%mem | head -8 && echo '--- containers ---' && cd /opt/voxshelf/AudioBookLib && docker compose ps --format '{{.Service}} {{.State}}'
+2026-07-17 11:05:04 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -c "UPDATE books SET hidden = true WHERE id = 26 RETURNING id, hidden, title;"
+2026-07-17 14:36:25 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && git pull && docker compose up -d --no-deps worker && echo '--- worker cmd ---' && docker compose exec -T worker sh -c 'cat /proc/1/cmdline | tr "\0" " "; echo'
+2026-07-17 14:36:33 UTC | exit 0 | uptime && free -h | head -2 && cd /opt/voxshelf/AudioBookLib && docker compose ps --format '{{.Service}} {{.State}}'
+2026-07-17 14:37:54 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && echo '--- direct backend hit (localhost) ---' && curl -s -o /dev/null -w 'internal API: %{http_code} in %{time_total}s\n' --max-time 15 http://localhost:8000/books/ ; echo '--- backend logs (last 25) ---' && docker compose logs backend --tail=25 2>&1 | tail -25
+2026-07-17 14:38:26 UTC | exit 7 | cd /opt/voxshelf/AudioBookLib && docker compose restart backend && sleep 3 && echo '--- internal API ---' && curl -s -o /dev/null -w 'localhost: %{http_code} in %{time_total}s\n' --max-time 15 http://localhost:8000/books/
+2026-07-17 14:38:39 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && echo '--- backend port mapping ---' && docker compose port backend 8000 2>/dev/null; grep -A2 'ports:' docker-compose.yml | head -6; echo '--- backend startup logs ---' && docker compose logs backend --tail=20 2>&1 | tail -20
+2026-07-17 14:39:20 UTC | exit 0 | fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab && swapon --show && free -h | head -3
+2026-07-17 14:42:31 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && echo '=== current book statuses ===' && docker compose exec -T postgres psql -U voxshelf -d voxshelf -t -c "SELECT status, count(*) FROM books GROUP BY status ORDER BY 2 DESC;" && echo '=== redis queue depth ===' && docker compose exec -T redis redis-cli LLEN celery && echo '=== what tasks ran (worker log task names) ===' && docker compose logs worker --since 4h 2>&1 | grep -oE 'Task app.tasks\.[a-z_]+\[[a-f0-9-]+\] (received|succeeded|raised)' | sed -E 's/\[[a-f0-9-]+\]//' | sort | uniq -c | sort -rn | head
+2026-07-17 14:42:54 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -d voxshelf -c "SELECT id, status, page_count, (SELECT count(*) FROM segments s WHERE s.book_id=books.id) AS segs, title FROM books WHERE status IN ('review','error','processing','pending') ORDER BY status, id;"
+2026-07-17 14:43:32 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose logs worker --since 6h --timestamps 2>&1 | grep -iE 'ingest_book|received task|Book [0-9]+ (looks|:)' | grep -oE '^[0-9T:.-]+Z.*(ingest_book|Book [0-9]+)[^ ]*' | tail -30; echo '=== count of ingest_book receives in last 6h ==='; docker compose logs worker --since 6h 2>&1 | grep -c 'ingest_book'
+2026-07-17 14:43:56 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && echo '=== task activity by type (last 6h) ===' && docker compose logs worker --since 6h 2>&1 | grep -oE 'app\.tasks\.[a-z_]+' | sort | uniq -c | sort -rn && echo '=== sample recent task lines ===' && docker compose logs worker --since 6h 2>&1 | grep -E 'Task |received|succeeded|ERROR|MemoryError|Killed|WorkerLostError' | tail -20
+2026-07-17 14:44:40 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && echo '=== backend access log: reprocess/synthesize POSTs ===' && docker compose logs backend 2>&1 | grep -iE 'POST /(books|api/books)/[0-9]+/(reprocess|synthesize)' | tail -20; echo '(end grep)'; echo '=== review/error books: when last touched (updated_at if present) ===' && docker compose exec -T postgres psql -U voxshelf -d voxshelf -c "SELECT column_name FROM information_schema.columns WHERE table_name='books' AND column_name LIKE '%_at';"
+2026-07-17 16:13:55 UTC | exit 255 | echo -n 'web->worker:22 '; timeout 5 bash -c 'echo > /dev/tcp/10.116.0.2/22' 2>/dev/null && echo REACHABLE || echo UNREACHABLE; echo -n 'web VPC ip: '; ip -4 addr show | grep -oE '10\.[0-9.]+' | head -1
+2026-07-17 20:39:23 UTC | exit 0 | echo WEB_OK; uptime | sed 's/,.*load/ | load/'; echo -n 'web VPC ip: '; ip -4 addr | grep -oE '10\.[0-9.]+' | head -1; echo -n 'web->worker:22 '; timeout 6 bash -c 'echo > /dev/tcp/10.116.0.2/22' 2>/dev/null && echo REACHABLE || echo UNREACHABLE
+2026-07-17 20:40:02 UTC | exit 0 | echo -n 'region: '; curl -s --max-time 5 http://169.254.169.254/metadata/v1/region; echo; echo -n 'web private ip/cidr: '; ip -4 -o addr show | grep -E '10\.' | awk '{print $4}'; echo -n 'vpc uuid: '; curl -s --max-time 5 http://169.254.169.254/metadata/v1/interfaces/private/0/network 2>/dev/null; echo
+2026-07-17 20:45:15 UTC | exit 0 | echo -n 'web->worker:22 '; timeout 6 bash -c 'echo > /dev/tcp/10.120.0.3/22' 2>/dev/null && echo REACHABLE || echo UNREACHABLE
+2026-07-17 20:46:24 UTC | exit 0 | [worker] echo via-script-OK; whoami@$(hostname); nproc | sed 's/^/vcpus: /'; docker --version 2>/dev/null || echo 'docker: not installed yet'
+2026-07-17 21:04:02 UTC | exit 0 | [worker] echo "=== OS ==="; . /etc/os-release; echo $PRETTY_NAME; echo "=== docker ==="; command -v docker || echo NO_DOCKER; echo "=== outbound test ==="; timeout 12 curl -sSI https://download.docker.com/linux/ubuntu/gpg | head -1 || echo "CURL_FAILED_$?"; echo "=== dns ==="; timeout 8 getent hosts download.docker.com || echo NO_DNS
+2026-07-17 21:04:23 UTC | exit 0 | [worker] echo "=== ip addrs ==="; ip -4 -o addr show | awk "{print \$2, \$4}"; echo "=== default route ==="; ip route show default; echo "=== raw egress to 1.1.1.1:443 ==="; timeout 8 bash -c "cat < /dev/null > /dev/tcp/1.1.1.1/443" && echo TCP_OK || echo TCP_FAIL; echo "=== egress to web VPC IP:22 ==="; timeout 8 bash -c "cat < /dev/null > /dev/tcp/10.120.0.2/22" && echo VPC_OK || echo VPC_FAIL
+2026-07-17 21:29:36 UTC | exit 0 | echo "=== interfaces ==="; ip -4 -o addr show | awk "{print \$2, \$4}"; echo "=== default route ==="; ip route show default; echo "=== ip_forward ==="; cat /proc/sys/net/ipv4/ip_forward; echo "=== existing nat rules ==="; iptables -t nat -S POSTROUTING; echo "=== iptables-persistent? ==="; dpkg -l | grep -q iptables-persistent && echo INSTALLED || echo NOT_INSTALLED
+2026-07-17 21:30:23 UTC | exit 0 | echo "=== FORWARD policy ==="; iptables -S FORWARD | head -20; echo "=== DOCKER-USER exists? ==="; iptables -S DOCKER-USER 2>/dev/null | head -5 || echo NO_DOCKER_USER
+2026-07-17 21:30:30 UTC | exit 0 | [worker] echo "=== netplan files ==="; ls -1 /etc/netplan/; echo "=== netplan content ==="; for f in /etc/netplan/*.yaml; do echo "--- $f ---"; cat "$f"; done; echo "=== resolved status ==="; resolvectl status 2>/dev/null | grep -A3 "Link 2" || cat /etc/resolv.conf; echo "=== cloud-init net? ==="; ls /etc/cloud/cloud.cfg.d/ 2>/dev/null | grep -i net || echo none
+2026-07-17 21:31:33 UTC | exit 0 | 
+set -e
+iptables -t nat -C POSTROUTING -s 10.120.0.3/32 -o eth0 -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s 10.120.0.3/32 -o eth0 -j MASQUERADE
+iptables -C DOCKER-USER -s 10.120.0.3/32 -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -s 10.120.0.3/32 -j ACCEPT
+iptables -C DOCKER-USER -d 10.120.0.3/32 -m state --state ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -d 10.120.0.3/32 -m state --state ESTABLISHED,RELATED -j ACCEPT
+echo "=== POSTROUTING ==="; iptables -t nat -S POSTROUTING | grep 10.120.0.3
+echo "=== DOCKER-USER ==="; iptables -S DOCKER-USER
+
+2026-07-17 21:31:46 UTC | exit 0 | [worker] 
+ip route replace default via 10.120.0.2
+echo "=== route ==="; ip route show default
+echo "=== dns ==="; getent hosts download.docker.com | head -1 || echo DNS_FAIL
+echo "=== docker repo ==="; timeout 15 curl -sSI https://download.docker.com/linux/ubuntu/gpg | head -1 || echo DOCKER_REPO_FAIL
+echo "=== openai ==="; timeout 15 curl -sS -o /dev/null -w "%{http_code}\n" https://api.openai.com/v1/models || echo OPENAI_FAIL
+echo "=== r2 ==="; timeout 15 curl -sS -o /dev/null -w "%{http_code}\n" https://cloudflare.com || echo R2_FAIL
+
+2026-07-17 21:32:51 UTC | exit 0 | 
+set -e
+install -m 0755 /tmp/worker-nat.sh /usr/local/sbin/worker-nat.sh
+install -m 0644 /tmp/worker-nat.service /etc/systemd/system/worker-nat.service
+rm -f /tmp/worker-nat.sh /tmp/worker-nat.service
+printf "net.ipv4.ip_forward=1\n" > /etc/sysctl.d/99-ip-forward.conf
+sysctl -p /etc/sysctl.d/99-ip-forward.conf
+systemctl daemon-reload
+systemctl enable --now worker-nat.service
+echo "=== service status ==="; systemctl is-enabled worker-nat.service; systemctl is-active worker-nat.service
+
+2026-07-17 21:33:07 UTC | exit 0 | [worker] 
+set -e
+printf "network: {config: disabled}\n" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+sed -i "s/via: \"10.120.0.1\"/via: \"10.120.0.2\"/" /etc/netplan/50-cloud-init.yaml
+echo "=== netplan route line ==="; grep -A2 "0.0.0.0/0" /etc/netplan/50-cloud-init.yaml
+netplan apply
+sleep 2
+echo "=== default route after apply ==="; ip route show default
+echo "=== egress recheck ==="; timeout 12 curl -sS -o /dev/null -w "%{http_code}\n" https://download.docker.com/linux/ubuntu/gpg || echo FAIL
+
+2026-07-17 21:34:36 UTC | exit 0 | 
+cd /opt/voxshelf/AudioBookLib
+echo "=== git remote ==="; git remote -v | head -2
+echo "=== branch/head ==="; git rev-parse --abbrev-ref HEAD; git rev-parse --short HEAD
+echo "=== .env keys (names only) ==="; sed -E "s/=.*/=<redacted>/" .env 2>/dev/null | grep -vE "^\s*#|^\s*$"
+echo "=== auth to github? ==="; git config --get remote.origin.url | grep -q "git@" && echo SSH_REMOTE || echo HTTPS_OR_OTHER
+
+2026-07-17 21:34:46 UTC | exit 0 | [worker] 
+set -e
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq
+apt-get install -y -qq ca-certificates curl >/dev/null
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+apt-get update -qq
+apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >/dev/null
+echo "=== versions ==="; docker --version; docker compose version
+systemctl is-active docker
+
+2026-07-17 21:35:43 UTC | exit 0 | [worker] 
+export GIT_TERMINAL_PROMPT=0
+timeout 20 git ls-remote https://github.com/antispiraldev/AudioBookLib HEAD 2>&1 | head -3 && echo "PUBLIC_OK" || echo "NEEDS_AUTH"
+
+2026-07-17 21:36:14 UTC | exit 0 | [worker] 
+set -e
+mkdir -p /opt/voxshelf
+cd /opt/voxshelf
+if [ -d AudioBookLib/.git ]; then echo "already cloned"; else git clone -q https://github.com/antispiraldev/AudioBookLib.git; fi
+cd AudioBookLib
+git rev-parse --short HEAD
+echo "=== tree top ==="; ls -1
+
+2026-07-17 21:36:51 UTC | exit 0 | [worker] cd /opt/voxshelf/AudioBookLib && chmod 600 .env && sed -E "s/=.*/=<redacted>/" .env | grep -vE "^\s*#|^\s*$" | wc -l | xargs echo "env keys present:"
+2026-07-17 21:51:07 UTC | exit 1 | 
+cd /opt/voxshelf/AudioBookLib
+echo "=== running containers ==="; docker compose ps --format "{{.Service}} {{.Status}}"
+echo "=== queue depth (celery default) ==="; docker compose exec -T redis redis-cli llen celery 2>/dev/null
+echo "=== any keys in redis ==="; docker compose exec -T redis redis-cli dbsize 2>/dev/null
+echo "=== books in active states ==="; docker compose exec -T postgres psql -U voxshelf -tAc "select status, count(*) from books group by status order by status;" 2>/dev/null
+
+2026-07-17 21:51:19 UTC | exit 0 | 
+cd /opt/voxshelf/AudioBookLib && pwd
+echo "=== docker ps ==="; docker ps --format "{{.Names}}\t{{.Status}}"
+echo "=== compose config file ==="; ls -1 docker-compose*.yml
+echo "=== compose ps (raw) ==="; docker compose ps 2>&1 | head
+2026-07-17 21:51:37 UTC | exit 0 | 
+echo "=== docker ps -a ==="; docker ps -a --format "{{.Names}}\t{{.Status}}" | head -20
+echo "=== uptime ==="; uptime
+echo "=== docker compose ls ==="; docker compose ls -a 2>&1 | head
+2026-07-17 21:52:56 UTC | exit 0 | 
+cd /opt/voxshelf/AudioBookLib
+set -e
+echo "=== add DB_BIND_IP to .env if missing ==="
+grep -q "^DB_BIND_IP=" .env || printf "DB_BIND_IP=10.120.0.2\n" >> .env
+grep "^DB_BIND_IP=" .env
+echo "=== git pull ==="
+git pull --ff-only origin master 2>&1 | tail -3
+echo "=== compose up (cold start; worker profiled out) ==="
+docker compose up -d --build 2>&1 | tail -15
+
+2026-07-17 21:53:09 UTC | exit 0 | 
+cd /opt/voxshelf/AudioBookLib
+echo "=== running ==="; docker compose ps --format "{{.Service}}\t{{.Status}}"
+echo "=== port bindings ==="; docker ps --format "{{.Names}}\t{{.Ports}}" | grep -E "postgres|redis"
+echo "=== listening on VPC ip? ==="; ss -ltn | grep -E "10.120.0.2:(5432|6379)" || echo "NOT BOUND ON VPC IP"
+echo "=== public exposure check (should be empty) ==="; ss -ltn | grep -E "0.0.0.0:(5432|6379)|206.189.163.67:(5432|6379)" || echo "not public - good"
+echo "=== orphan worker ==="; docker ps -a --format "{{.Names}}\t{{.Status}}" | grep worker || echo "no worker container"
+
+2026-07-17 21:53:49 UTC | exit 0 | 
+install -m 0755 /tmp/worker-nat.sh /usr/local/sbin/worker-nat.sh && rm -f /tmp/worker-nat.sh
+systemctl restart worker-nat.service
+echo "=== DOCKER-USER rules ==="; iptables -S DOCKER-USER
+
+2026-07-17 21:54:05 UTC | exit 0 | [worker] 
+echo "=== worker -> web postgres 5432 ==="; timeout 6 bash -c "cat </dev/null >/dev/tcp/10.120.0.2/5432" && echo PG_OK || echo PG_FAIL
+echo "=== worker -> web redis 6379 ==="; timeout 6 bash -c "cat </dev/null >/dev/tcp/10.120.0.2/6379" && echo REDIS_OK || echo REDIS_FAIL
+
+2026-07-17 21:54:27 UTC | exit 0 | 
+cd /opt/voxshelf/AudioBookLib
+docker rm -f audiobooklib-worker-1 2>&1 | head -2
+echo "=== remaining containers ==="; docker ps -a --format "{{.Names}}\t{{.Status}}"
+
+2026-07-17 21:55:05 UTC | exit 0 | [worker] 
+cd /opt/voxshelf/AudioBookLib
+git pull --ff-only origin master 2>&1 | tail -2
+docker compose -f docker-compose.worker.yml up -d --build 2>&1 | tail -20
+
+2026-07-17 21:55:39 UTC | exit 0 | [worker] 
+cd /opt/voxshelf/AudioBookLib
+echo "=== container ==="; docker compose -f docker-compose.worker.yml ps --format "{{.Service}}\t{{.Status}}"
+echo "=== recent logs ==="; docker compose -f docker-compose.worker.yml logs --tail=25 worker 2>&1 | sed -E "s/[0-9a-f]{64}//g"
+echo "=== inspect ping ==="; docker compose -f docker-compose.worker.yml exec -T worker celery -A app.tasks inspect ping -t 10 2>&1 | tail -5
+
+2026-07-17 21:56:36 UTC | exit 0 | [worker] 
+cd /opt/voxshelf/AudioBookLib
+docker compose -f docker-compose.worker.yml exec -T worker python -c "
+import os
+# 1) Postgres over the VPC
+from sqlalchemy import create_engine, text
+e = create_engine(os.environ[\"DATABASE_URL\"])
+with e.connect() as c:
+    print(\"DB OK — books:\", c.execute(text(\"select count(*) from books\")).scalar())
+# 2) R2 over NAT egress
+from app.services import storage
+print(\"R2 enabled:\", storage.is_enabled())
+cl = storage._get_client(); r = cl.list_objects_v2(Bucket=storage._bucket(), MaxKeys=1)
+print(\"R2 OK — reachable, KeyCount:\", r.get(\"KeyCount\"))
+# 3) OpenAI over NAT egress
+from openai import OpenAI
+m = OpenAI(api_key=os.environ[\"OPENAI_API_KEY\"]).models.list()
+print(\"OpenAI OK — models returned:\", len(m.data))
+"
+
+2026-07-17 21:57:18 UTC | exit 0 | 
+cd /opt/voxshelf/AudioBookLib
+docker compose exec -T postgres psql -U voxshelf -tAc "select id, status, page_count, left(title,30), pdf_path from books where status='error' order by page_count nulls last;"
+
+2026-07-17 21:57:55 UTC | exit 0 | 
+cd /opt/voxshelf/AudioBookLib
+docker compose exec -T backend python -c "
+from app.database import SessionLocal
+from app.models import Book, Segment
+from app.tasks import ingest_book
+db = SessionLocal()
+db.query(Segment).filter(Segment.book_id==27).delete()
+b = db.get(Book, 27); b.status=\"pending\"; b.page_count=None
+db.commit()
+r = ingest_book.delay(27)
+print(\"enqueued ingest_book(27), task id:\", r.id)
+"
+
+2026-07-17 21:58:08 UTC | exit 0 | [worker] 
+cd /opt/voxshelf/AudioBookLib
+docker compose -f docker-compose.worker.yml logs --tail=15 worker 2>&1 | grep -iE "ingest_book|received|6a5602dd|book 27|error|traceback" | tail -15
+
+2026-07-17 21:58:16 UTC | exit 0 | [worker] cd /opt/voxshelf/AudioBookLib && docker compose -f docker-compose.worker.yml logs --tail=20 worker 2>&1 | tail -20
+2026-07-17 21:58:17 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -tAc "select id, status, page_count from books where id=27;"
+2026-07-17 21:58:35 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -tAc "select status from books where id=27;"
+2026-07-17 21:58:51 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -tAc "select status from books where id=27;"
+2026-07-17 21:59:07 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -tAc "select status from books where id=27;"
+2026-07-17 21:59:23 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -tAc "select status from books where id=27;"
+2026-07-17 21:59:39 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -tAc "select status from books where id=27;"
+2026-07-17 21:59:39 UTC | exit 0 | cd /opt/voxshelf/AudioBookLib && docker compose exec -T postgres psql -U voxshelf -tAc "select count(*) from segments where book_id=27;"
