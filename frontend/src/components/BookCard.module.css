@@ -230,6 +230,18 @@
   color: var(--text);
   border-color: var(--text-muted);
 }
+.playBtn:disabled,
+.retryBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.playBtn:disabled:hover {
+  background: var(--accent);
+}
+.retryBtn:disabled:hover {
+  color: var(--text-muted);
+  border-color: var(--border);
+}
 
 /* Overflow (⋯) menu */
 .menuWrap {

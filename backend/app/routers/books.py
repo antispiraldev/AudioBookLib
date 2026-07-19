@@ -180,7 +180,14 @@ def retry_synthesize(book_id: int, db: Session = Depends(get_db)):
     book = db.get(Book, book_id)
     if not book:
         raise HTTPException(404, "Book not found")
+    # Flip to synthesizing in the response itself (synthesize_book also does this
+    # worker-side, but only once it runs). Without this the API returns the book
+    # still in review/error, so the UI keeps showing Approve until the next poll —
+    # a window where a second click fires a duplicate synthesis run.
     synthesize_book.delay(book_id)
+    book.status = "synthesizing"
+    db.commit()
+    db.refresh(book)
     return book
 
 
