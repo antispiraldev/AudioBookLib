@@ -22,6 +22,13 @@
   font-size: 44px;
   font-weight: 700;
   letter-spacing: -1.5px;
+  font-feature-settings: "kern" 1;
+}
+/* The Æ ligature is the lettermark: brand accent, and pulled a hair tighter
+   into the "do" so the bonded glyph reads as one unit with the wordmark. */
+.ae {
+  color: var(--accent);
+  margin-right: -1px;
 }
 
 .tagline {
