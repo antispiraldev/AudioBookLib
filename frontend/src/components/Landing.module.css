@@ -19,20 +19,32 @@
 }
 
 .logo {
-  font-size: 44px;
-  font-weight: 700;
-  letter-spacing: -1.5px;
-  font-feature-settings: "kern" 1;
+  font-family: "Fraunces", Georgia, "Times New Roman", serif;
+  font-size: 52px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
 }
-/* The Æ ligature is the lettermark: brand accent, and pulled a hair tighter
+/* The æ ligature is the lettermark: brand accent, and pulled a hair tighter
    into the "do" so the bonded glyph reads as one unit with the wordmark. */
 .ae {
   color: var(--accent);
-  margin-right: -1px;
+  margin-right: -0.02em;
+}
+
+/* Plain-English pronunciation gloss — Fraunces italic, quiet. The capitalised
+   syllable marks the stress, no IPA. */
+.pron {
+  margin-top: 8px;
+  font-family: "Fraunces", Georgia, serif;
+  font-style: italic;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
 }
 
 .tagline {
-  margin-top: 10px;
+  margin-top: 14px;
   font-size: 17px;
   color: var(--text-muted);
 }
@@ -132,7 +144,7 @@
 
 @media (max-width: 560px) {
   .logo {
-    font-size: 36px;
+    font-size: 42px;
   }
   .cta {
     width: 100%;

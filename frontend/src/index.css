@@ -4,6 +4,23 @@
   padding: 0;
 }
 
+/* Fraunces — display serif used only for the Aedo wordmark and its
+   pronunciation gloss. Self-hosted (OFL) so there's no external font CDN. */
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("./assets/fonts/fraunces-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Fraunces";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/fraunces-italic-400.woff2") format("woff2");
+}
+
 :root {
   --bg: #0f0f0f;
   --surface: #1a1a1a;
