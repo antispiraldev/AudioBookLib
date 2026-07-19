@@ -1,72 +1,116 @@
+/* Landing — styled as an illuminated "incipit" leaf. Tokens are scoped locally
+   to .wrap so the app's global dark theme is untouched. This surface commits to
+   a single light "vellum" world on purpose: illumination lives on a bright page,
+   and the door into the (dark) library is meant to feel like opening a book. */
 .wrap {
+  --vellum: #ece1c6;
+  --vellum-deep: #e4d7b7;
+  --ink: #2b2113;
+  --ink-soft: #63543b;
+  --lapis: #274b8e;
+  --lapis-deep: #1e3a70;
+  --gilt: #a97c22;
+  --gilt-soft: rgba(169, 124, 34, 0.5);
+  --rubric: #a8322a;
+  --rule: rgba(43, 33, 19, 0.16);
+
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
+  color: var(--ink);
+  /* Vellum ground: base wash + two faint warm pools + a soft aged vignette. */
+  background-color: var(--vellum);
+  background-image:
+    radial-gradient(120% 90% at 28% 18%, rgba(255, 250, 235, 0.55), transparent 60%),
+    radial-gradient(120% 90% at 82% 88%, rgba(196, 176, 132, 0.28), transparent 55%),
+    radial-gradient(140% 120% at 50% 50%, transparent 62%, rgba(74, 58, 30, 0.10));
 }
 
-.hero {
+.leaf {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 40px 24px;
+}
+
+/* The ruled frame of the page — a fine gilt line with an inner hairline,
+   echoing the ruled margins that framed a manuscript's text block. */
+.incipit {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   text-align: center;
-  padding: 48px 24px;
-  max-width: 560px;
-  width: 100%;
+  padding: 56px 44px 48px;
+  border: 1.5px solid var(--gilt);
+}
+.incipit::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--gilt-soft);
+  pointer-events: none;
 }
 
 .logo {
   font-family: "Fraunces", Georgia, "Times New Roman", serif;
-  font-size: 52px;
+  font-size: 56px;
   font-weight: 600;
-  letter-spacing: -0.01em;
   line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
-/* The æ ligature is the lettermark: brand accent, and pulled a hair tighter
-   into the "do" so the bonded glyph reads as one unit with the wordmark. */
+/* The æ ligature as an illuminated initial: the precious lapis blue, pulled a
+   hair tighter into "do" so the bonded glyph reads as one lettermark. */
 .ae {
-  color: var(--accent);
+  color: var(--lapis);
   margin-right: -0.02em;
 }
 
-/* Plain-English pronunciation gloss — Fraunces italic, quiet. The capitalised
-   syllable marks the stress, no IPA. */
+/* Rubric — scribes marked special text in red ink. The pronunciation gloss
+   gets that treatment: Fraunces italic, vermilion. */
 .pron {
-  margin-top: 8px;
+  margin-top: 10px;
   font-family: "Fraunces", Georgia, serif;
   font-style: italic;
   font-size: 16px;
-  letter-spacing: 0.02em;
-  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  color: var(--rubric);
 }
 
 .tagline {
-  margin-top: 14px;
-  font-size: 17px;
-  color: var(--text-muted);
+  margin-top: 16px;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 400;
+  font-size: 19px;
+  color: var(--ink-soft);
 }
 
 .cta {
-  margin-top: 36px;
+  margin-top: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   min-height: 48px;
-  padding: 0 28px;
-  border-radius: var(--radius);
-  background: var(--accent);
-  color: #fff;
+  padding: 0 26px;
+  border-radius: 4px;
+  border: 1px solid var(--gilt);
+  background: var(--lapis);
+  color: #f6efdd;
   font-size: 15px;
   font-weight: 600;
   text-decoration: none;
   transition: background 0.15s ease;
 }
 .cta:hover {
-  background: var(--accent-hover);
+  background: var(--lapis-deep);
 }
 .g {
   display: inline-flex;
@@ -75,8 +119,8 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #fff;
-  color: var(--accent);
+  background: linear-gradient(160deg, #d8b458, var(--gilt));
+  color: var(--lapis);
   font-weight: 700;
   font-size: 13px;
 }
@@ -84,7 +128,7 @@
 .framing {
   margin-top: 14px;
   font-size: 13px;
-  color: var(--text-muted);
+  color: var(--ink-soft);
 }
 
 .denied {
@@ -94,63 +138,97 @@
   gap: 12px;
   margin-top: 20px;
   padding: 10px 16px;
-  background: var(--surface);
-  border: 1px solid var(--danger);
-  border-radius: 8px;
-  color: var(--text);
+  background: var(--vellum-deep);
+  border: 1px solid var(--rubric);
+  border-radius: 4px;
+  color: var(--ink);
   font-size: 14px;
 }
 .deniedClose {
   background: transparent;
-  color: var(--text-muted);
+  color: var(--ink-soft);
   font-size: 15px;
   flex-shrink: 0;
 }
 
+/* Marginal ornament — hairline rules flanking an aldus leaf. */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 62%;
+  margin: 44px 0 4px;
+}
+.rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gilt-soft) 30%, var(--gilt-soft) 70%, transparent);
+}
+.lozenge {
+  color: var(--gilt);
+  font-size: 16px;
+  line-height: 1;
+}
+
 .tiles {
-  margin-top: 48px;
+  margin-top: 28px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: 22px;
   width: 100%;
   list-style: none;
 }
 .tile {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 18px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  gap: 7px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
   text-align: left;
 }
 .tileTitle {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
 }
 .tileBody {
   font-size: 13px;
-  line-height: 1.4;
-  color: var(--text-muted);
+  line-height: 1.45;
+  color: var(--ink-soft);
 }
 
-.footer {
-  padding: 20px;
-  font-size: 12px;
-  color: var(--text-muted);
+/* Colophon — the scribe's closing note. Fraunces italic, oldstyle figures. */
+.colophon {
+  padding: 22px;
+  font-family: "Fraunces", Georgia, serif;
+  font-style: italic;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  font-variant-numeric: oldstyle-nums;
+  color: var(--ink-soft);
 }
 
 @media (max-width: 560px) {
-  .logo {
-    font-size: 42px;
+  .incipit {
+    padding: 40px 24px 36px;
   }
-  .cta {
-    width: 100%;
+  .logo {
+    font-size: 44px;
+  }
+  .divider {
+    width: 78%;
   }
   .tiles {
     grid-template-columns: 1fr;
-    margin-top: 36px;
+    gap: 0;
+  }
+  .tile {
+    padding: 14px 0;
+  }
+  .tile:first-child {
+    padding-top: 0;
+    border-top: none;
   }
 }
