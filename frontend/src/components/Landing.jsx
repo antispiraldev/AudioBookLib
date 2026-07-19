@@ -46,7 +46,7 @@ export default function Landing({ denied, onDismissDenied }) {
         </ul>
       </main>
 
-      <footer className={s.footer}>© Aedo · {new Date().getFullYear()}</footer>
+      <footer className={s.footer}>Aedo · {new Date().getFullYear()}</footer>
     </div>
   );
 }
