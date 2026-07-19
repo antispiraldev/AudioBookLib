@@ -117,10 +117,101 @@ PRESETS = {
 ROUND2_VOICES = ["ash", "onyx"]
 ROUND2_PRESETS = ["intimate", "aged_fry", "aged_warm", "fry_only", "unpolished", "aged_fry_free"]
 
+# --- Round 3 ---------------------------------------------------------------
+# Round 2 picked onyx/aged_fry_free, then onyx/aged_warm. Two findings drive
+# round 3: onyx beat ash once the prompt described age (so the production default
+# voice is fine), and dropping "do not editorialize" is what unlocked the
+# emotional content — aged_fry, the same prompt *with* the clause, ranked lower.
+#
+# The clause conflated lexical fidelity with prosodic freedom. These presets split
+# them: say exactly these words, but vary how. They also name the trait the listener
+# singled out in D — letting the final phoneme of a sentence linger rather than clip.
 
-def render(voice: str, preset: str, text: str) -> tuple[str, str, str | None]:
+# Guarantees the words without touching delivery. Insurance against paraphrase now
+# that the blunt clause is gone.
+_FIDELITY = (
+    "Read the text exactly as written — every word, in order, with nothing added, "
+    "dropped, or reworded. How you say it is entirely yours to shape."
+)
+
+_AGED_BASE = (
+    "Read as an older narrator, a man in his sixties or seventies with a low, "
+    "lived-in voice and a slight vocal fry — a soft gravelly creak that settles "
+    "in at the ends of phrases and on the quieter words. Unhurried and "
+    "conversational, close to the microphone, speaking to one person. The voice "
+    "carries age and experience without sounding frail or tired."
+)
+
+_LINGER = (
+    "Let the last word of a sentence linger and decay rather than clipping it off, "
+    "and leave a beat of silence after it before moving on."
+)
+
+PRESETS.update(
+    {
+        # Stress follows meaning: the emphasis lands on whichever word carries the
+        # emotional weight, so it moves sentence to sentence instead of falling on a
+        # fixed metrical beat.
+        "prosody_valence": (
+            f"{_AGED_BASE} As you read, find the word in each sentence that carries "
+            "its feeling and let the stress land there, so the emphasis moves from "
+            "sentence to sentence rather than falling into a fixed rhythm. Where the "
+            "text turns warm or reverent, soften and slow; where it turns plain or "
+            "factual, level out. Let the pitch rise slightly through a clause that is "
+            f"building and fall as it resolves. {_LINGER} {_FIDELITY}"
+        ),
+        # Same idea stated as mechanics rather than emotion — tests whether the model
+        # responds better to "vary pitch/tempo/volume" than to "follow the feeling."
+        "prosody_contour": (
+            f"{_AGED_BASE} Vary your prosody continuously: change pitch, tempo, and "
+            "volume from phrase to phrase so no two sentences share the same shape. "
+            "Take subordinate and parenthetical clauses faster and quieter, then "
+            "return to full weight on the main clause. Pause longer at a semicolon "
+            f"than at a comma, and longer still at a full stop. {_LINGER} {_FIDELITY}"
+        ),
+        # Both of the above at once, pushed harder — the ceiling test.
+        "prosody_max": (
+            f"{_AGED_BASE} Give this real prosodic range. Let the stress land on the "
+            "word carrying the feeling, and let it move as the meaning moves. Vary "
+            "pitch, tempo, and volume from phrase to phrase; take the subordinate "
+            "clauses lighter and quicker, lean into the vivid images, and let a long "
+            "sentence build and then settle. Some lines should land noticeably softer "
+            f"than others. {_LINGER} Never sing-song or theatrical. {_FIDELITY}"
+        ),
+        # D's exact prompt plus only the lingering-decay line, to check whether that
+        # single trait is what the listener actually responded to.
+        "linger_only": f"{_AGED_BASE} {_LINGER} {_FIDELITY}",
+        # D verbatim, no fidelity clause at all — carried forward as the control.
+        "d_control": _AGED_BASE,
+        # prosody_valence with the blunt original clause restored, to confirm the
+        # reworded fidelity line is what preserves expression.
+        "prosody_valence_blunt": (
+            f"{_AGED_BASE} As you read, find the word in each sentence that carries "
+            "its feeling and let the stress land there, so the emphasis moves from "
+            "sentence to sentence rather than falling into a fixed rhythm. Where the "
+            "text turns warm or reverent, soften and slow; where it turns plain or "
+            "factual, level out. Let the pitch rise slightly through a clause that is "
+            f"building and fall as it resolves. {_LINGER} "
+            "Do not editorialize or change the words."
+        ),
+    }
+)
+
+ROUND3_VOICES = ["onyx"]
+ROUND3_PRESETS = [
+    "d_control",
+    "linger_only",
+    "prosody_valence",
+    "prosody_contour",
+    "prosody_max",
+    "prosody_valence_blunt",
+]
+
+
+def render(voice: str, preset: str, text: str, take: int = 1) -> tuple[str, str, str | None]:
     """Synthesize one cell of the grid. Returns (voice, preset, error)."""
-    path = OUT_DIR / f"{voice}__{preset}.mp3"
+    suffix = "" if take == 1 else f"__take{take}"
+    path = OUT_DIR / f"{voice}__{preset}{suffix}.mp3"
     try:
         # tts.synthesize() hardcodes VOICE, so patch it for the duration of the
         # call. Fine here because this script is single-purpose and the pool below
@@ -154,9 +245,16 @@ def load_env() -> None:
                 return
 
 
-def write_index(cells: list[tuple[str, str]]) -> Path:
+def write_index(cells: list[tuple[str, str, int]]) -> Path:
     """Blind player: clips are shuffled and anonymized until you hit Reveal."""
-    items = [{"voice": v, "preset": p, "file": f"{v}__{p}.mp3"} for v, p in cells]
+    items = [
+        {
+            "voice": v,
+            "preset": p if t == 1 else f"{p} (take {t})",
+            "file": f"{v}__{p}{'' if t == 1 else f'__take{t}'}.mp3",
+        }
+        for v, p, t in cells
+    ]
     random.shuffle(items)
     html = _INDEX_TEMPLATE.replace("__ITEMS__", json.dumps(items, indent=2)).replace(
         "__PASSAGE__", PASSAGE
@@ -219,6 +317,14 @@ def main() -> int:
         action="store_true",
         help="round-2 grid: round-1 winners x the age/fry presets, into ab_out2/",
     )
+    parser.add_argument(
+        "--round3",
+        action="store_true",
+        help="round-3 grid: onyx x the prosody presets, 2 takes each, into ab_out3/",
+    )
+    parser.add_argument(
+        "--takes", type=int, default=1, help="renders per cell, to judge consistency"
+    )
     args = parser.parse_args()
 
     if args.round2:
@@ -226,6 +332,13 @@ def main() -> int:
         args.presets = ",".join(ROUND2_PRESETS)
         if args.out == "ab_out":
             args.out = "ab_out2"
+    if args.round3:
+        args.voices = ",".join(ROUND3_VOICES)
+        args.presets = ",".join(ROUND3_PRESETS)
+        if args.takes == 1:
+            args.takes = 2
+        if args.out == "ab_out":
+            args.out = "ab_out3"
     globals()["OUT_DIR"] = Path(__file__).resolve().parent / args.out
 
     load_env()
@@ -244,19 +357,22 @@ def main() -> int:
     globals()["PASSAGE"] = text
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    cells = [(v, p) for v in voices for p in presets]
+    cells = [
+        (v, p, t) for v in voices for p in presets for t in range(1, args.takes + 1)
+    ]
     print(f"rendering {len(cells)} clips into {OUT_DIR}/ ...")
 
-    failed = []
+    failed = set()
     with ThreadPoolExecutor(max_workers=4) as pool:
-        for voice, preset, err in pool.map(lambda c: render(c[0], c[1], text), cells):
+        results = pool.map(lambda c: (c, render(c[0], c[1], text, c[2])), cells)
+        for cell, (voice, preset, err) in results:
             if err:
-                failed.append((voice, preset, err))
-                print(f"  FAIL {voice}/{preset}: {err}")
+                failed.add(cell)
+                print(f"  FAIL {voice}/{preset} take {cell[2]}: {err}")
             else:
-                print(f"  ok   {voice}/{preset}")
+                print(f"  ok   {voice}/{preset} take {cell[2]}")
 
-    ok = [c for c in cells if c not in [(v, p) for v, p, _ in failed]]
+    ok = [c for c in cells if c not in failed]
     if ok:
         print(f"\nopen {write_index(ok)}")
     if failed:
