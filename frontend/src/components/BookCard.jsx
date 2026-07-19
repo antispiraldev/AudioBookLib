@@ -33,6 +33,9 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
   const [showReprocess, setShowReprocess] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [retryError, setRetryError] = useState("");
+  // True while an approve/retry request is in flight, so the button can't be
+  // fired twice before the status flips to "synthesizing".
+  const [submitting, setSubmitting] = useState(false);
   // Set when the user fires a reprocess, so we can label the working state
   // "Reprocessing…" rather than the generic "Queued"/"Extracting text…".
   const [reprocessing, setReprocessing] = useState(false);
@@ -81,12 +84,16 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
   }
 
   async function handleRetry() {
+    if (submitting) return;
     setRetryError("");
+    setSubmitting(true);
     try {
       const updated = await retryBook(book.id);
       onUpdated(updated);
     } catch (e) {
       setRetryError(e.message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -188,19 +195,23 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
             )}
             {isAdmin && book.status === "review" && (
               <>
-                <button className={s.retryBtn} onClick={() => setShowReview(true)}>
+                <button className={s.retryBtn} onClick={() => setShowReview(true)} disabled={submitting}>
                   Review
                 </button>
-                <button className={s.playBtn} onClick={handleRetry}>
-                  Approve
+                <button className={s.playBtn} onClick={handleRetry} disabled={submitting}>
+                  {submitting ? "Starting…" : "Approve"}
                 </button>
               </>
             )}
             {isAdmin && book.status === "error" && (
-              <button className={s.retryBtn} onClick={handleRetry}>Retry</button>
+              <button className={s.retryBtn} onClick={handleRetry} disabled={submitting}>
+                {submitting ? "Starting…" : "Retry"}
+              </button>
             )}
             {isAdmin && isStuck && (
-              <button className={s.retryBtn} onClick={handleRetry}>Refresh</button>
+              <button className={s.retryBtn} onClick={handleRetry} disabled={submitting}>
+                {submitting ? "Starting…" : "Refresh"}
+              </button>
             )}
 
             {isAdmin && (
