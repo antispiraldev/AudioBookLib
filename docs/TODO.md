@@ -8,21 +8,13 @@ Keep entries short; the *why* belongs in the commit or in `PIPELINE.md`.
 
 ## Admin panel
 
-The approved 6-PR roadmap; PRs 1–3 merged and live at `#/admin` as of 2026-07-18.
-Remaining three are on hold — each needs the live broker and both droplets to
-verify, so they can't be built blind.
+All 6 roadmap PRs merged, deployed, and verified live at `#/admin` as of
+2026-07-18 (see `PIPELINE.md` → Observability for what exists). One follow-up
+the deploy surfaced:
 
-- [x] PR4 — concurrency stats: `GET /api/admin/workers` via Celery `inspect`
-      over the broker, plus Redis queue depth
-- [x] PR5 — resource warnings: psutil for the web droplet locally; worker
-      self-reports mem/swap/load via periodic Celery heartbeat → Redis;
-      `GET /api/admin/resources` with ok/warn/critical tied to the OOM
-      thresholds, prominent banner on critical
-- [x] PR6 — logs viewer: `GET /api/admin/logs?source=web|worker`; web via
-      rotating file handler, worker pushes to a capped Redis list
-
-Constraint for all three: the worker droplet has no public IP. Anything it
-reports must travel through the shared Redis or Postgres — never direct HTTP.
+- [ ] The worker droplet has **no swap configured** (`swap_total: 0` in
+      `/api/admin/resources`) — memory is its only OOM cushion. Consider
+      adding swap there like the web droplet has.
 
 ## TTS / narration quality
 
@@ -59,7 +51,5 @@ asymmetry is the gap.
 
 ## Repo / process
 
-- [ ] `CLAUDE.md` at the repo root is empty and untracked — fill it in or
-      delete it
 - [ ] No CI: deploys are manual (`git pull && docker compose up -d --build` on
       the droplet). Worth automating at some point
