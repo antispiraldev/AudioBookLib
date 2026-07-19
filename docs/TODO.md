@@ -18,17 +18,17 @@ the deploy surfaced:
 
 ## TTS / narration quality
 
-A listener found the default `onyx` narration "too flat and impersonal."
-`gpt-4o-mini-tts` is steerable and `Book.tts_instructions` is already per-book,
-but `VOICE = "onyx"` is hardcoded in `backend/app/services/tts.py` — that
-asymmetry is the gap.
+Done in PR #18 (live 2026-07-19). The "too flat and impersonal" `onyx` default
+was fixed as a prompt problem, not a provider one, and voice is now selectable.
 
-- [ ] Parameterize `voice` alongside the existing `tts_instructions`
-- [ ] Write 3–4 narrator-style instruction presets
-- [ ] Generate sample clips of one paragraph across voice × preset for blind
-      comparison — costs pennies, and answers whether a second provider
-      (ElevenLabs et al.) is worth abstracting behind `synthesize()` at all
-- [ ] Offer a few voice/prompt options in the UI rather than one default
+- [x] Parameterize `voice` alongside the existing `tts_instructions` — `NARRATORS`
+      preset registry + `tts.resolve()` in `backend/app/services/tts.py`
+- [x] Write narrator-style instruction presets — default is onyx + `prosody_valence`
+      (older narrator, valence-driven stress, lingering sentence-final decay)
+- [x] Generate sample clips across voice × preset for blind comparison — harness at
+      `backend/scripts/tts_ab.py`; three rounds settled it, no second provider needed
+- [x] Offer voice/prompt options in the UI — admin narrator dropdown (Edit modal),
+      `older_man`/onyx and `older_woman`/shimmer, fed by `GET /books/narrators`
 
 ## Pipeline / content
 
