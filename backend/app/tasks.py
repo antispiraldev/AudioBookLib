@@ -17,7 +17,7 @@ from .services.clean import clean_many
 from .services.events import record_pipeline_event
 from .services.pdf import extract_text_chunks, looks_scanned
 from .services.tts import synthesize
-from .services import storage
+from .services import storage, tts
 
 log = logging.getLogger(__name__)
 
@@ -137,13 +137,16 @@ def synthesize_segment(segment_id: int, book_id: int) -> str:
             return "ready"
 
         book = db.get(Book, book_id)
-        instructions = book.tts_instructions if book else None
+        voice, instructions = tts.resolve(
+            book.tts_narrator if book else None,
+            book.tts_instructions if book else None,
+        )
 
         local_path = os.path.join(STORAGE_AUDIO, str(book_id), f"{seg.order:04d}.mp3")
         seg.status = "processing"
         db.commit()
 
-        synthesize(seg.text, local_path, instructions=instructions)
+        synthesize(seg.text, local_path, instructions=instructions, voice=voice)
 
         if storage.is_enabled():
             key = f"audio/{book_id}/{seg.order:04d}.mp3"

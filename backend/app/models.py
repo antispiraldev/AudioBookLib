@@ -32,7 +32,11 @@ class Book(Base):
     genre = Column(String, nullable=True)
     year = Column(Integer, nullable=True)
     notes = Column(Text, nullable=True)
-    # admin-only: per-book narration style/context passed to the TTS model
+    # admin-only: narrator preset key (voice + matching prompt); null → default.
+    # See NARRATORS in app/services/tts.py.
+    tts_narrator = Column(String, nullable=True)
+    # admin-only: free-text narration prompt; overrides the preset's prompt (not
+    # its voice) when set. Blank uses the preset.
     tts_instructions = Column(Text, nullable=True)
     # who uploaded the book; null for legacy books whose uploader is unknown
     uploaded_by_user_id = Column(

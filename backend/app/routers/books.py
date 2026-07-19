@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Book, Segment, User
 from ..schemas import BookOut, BookUpdate, SegmentText, SegmentUpdate
-from ..services import storage
+from ..services import storage, tts
 from ..services.suggest import suggest_metadata
 from ..tasks import ingest_book, synthesize_book
 from .auth import get_current_user, require_admin
@@ -37,6 +37,18 @@ def list_books(
     if not _is_admin(user):
         q = q.filter(Book.hidden.is_(False))
     return q.all()
+
+
+@router.get("/narrators", dependencies=[Depends(require_admin)])
+def list_narrators():
+    """Narrator presets the admin can assign to a book (key, label, voice)."""
+    return {
+        "default": tts.DEFAULT_NARRATOR,
+        "presets": [
+            {"key": key, "label": p["label"], "voice": p["voice"]}
+            for key, p in tts.NARRATORS.items()
+        ],
+    }
 
 
 @router.get("/{book_id}", response_model=BookOut)
