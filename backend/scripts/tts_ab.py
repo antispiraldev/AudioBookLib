@@ -68,7 +68,54 @@ PRESETS = {
         "deliberate phrasing that respects the punctuation. Dignified but not cold. "
         "Do not editorialize or change the words."
     ),
+    # --- Round 2 -------------------------------------------------------------
+    # Round 1 picked ash/intimate, ash/classic, onyx/classic: deep voices, restrained
+    # delivery. None of the round-1 presets described the *speaker* — only pacing and
+    # manner. These add age and vocal fry, and isolate each factor against `intimate`
+    # so we can tell which one is actually doing the work.
+    "aged_fry": (
+        "Read as an older narrator, a man in his sixties or seventies with a low, "
+        "lived-in voice and a slight vocal fry — a soft gravelly creak that settles "
+        "in at the ends of phrases and on the quieter words. Unhurried and "
+        "conversational, close to the microphone, speaking to one person. The voice "
+        "carries age and experience without sounding frail or tired. "
+        "Do not editorialize or change the words."
+    ),
+    "aged_warm": (
+        "Read as an older narrator, a man in his sixties or seventies with a low, "
+        "warm, lived-in voice. Unhurried and conversational, close to the "
+        "microphone, speaking to one person. The voice carries age and experience, "
+        "smooth and resonant rather than rough. "
+        "Do not editorialize or change the words."
+    ),
+    "fry_only": (
+        "Read as if speaking quietly to one person in the same room, close to the "
+        "microphone. Unhurried and conversational, with natural breaths and small "
+        "pauses at the commas. Let a slight vocal fry into your voice — a soft "
+        "gravelly creak at the ends of phrases and on the quieter words. Confiding "
+        "rather than performed. Do not editorialize or change the words."
+    ),
+    "unpolished": (
+        "Read as an older man reading aloud to a friend, not as a professional "
+        "narrator. Low and gravelly, with a slight vocal fry. Let it be imperfect: "
+        "audible breaths, the occasional micro-pause where someone would naturally "
+        "gather a thought, phrases that run a little long and then settle. Some "
+        "sentences land softer than others. Human rather than polished. "
+        "Do not editorialize or change the words."
+    ),
+    # Identical to aged_fry minus the trailing constraint, to test whether that
+    # clause is itself suppressing expression.
+    "aged_fry_free": (
+        "Read as an older narrator, a man in his sixties or seventies with a low, "
+        "lived-in voice and a slight vocal fry — a soft gravelly creak that settles "
+        "in at the ends of phrases and on the quieter words. Unhurried and "
+        "conversational, close to the microphone, speaking to one person. The voice "
+        "carries age and experience without sounding frail or tired."
+    ),
 }
+
+ROUND2_VOICES = ["ash", "onyx"]
+ROUND2_PRESETS = ["intimate", "aged_fry", "aged_warm", "fry_only", "unpolished", "aged_fry_free"]
 
 
 def render(voice: str, preset: str, text: str) -> tuple[str, str, str | None]:
@@ -166,7 +213,20 @@ def main() -> int:
     parser.add_argument("--voices", default=",".join(VOICES))
     parser.add_argument("--presets", default=",".join(PRESETS))
     parser.add_argument("--text-file", help="passage to read instead of the built-in one")
+    parser.add_argument("--out", default="ab_out", help="output dir under scripts/")
+    parser.add_argument(
+        "--round2",
+        action="store_true",
+        help="round-2 grid: round-1 winners x the age/fry presets, into ab_out2/",
+    )
     args = parser.parse_args()
+
+    if args.round2:
+        args.voices = ",".join(ROUND2_VOICES)
+        args.presets = ",".join(ROUND2_PRESETS)
+        if args.out == "ab_out":
+            args.out = "ab_out2"
+    globals()["OUT_DIR"] = Path(__file__).resolve().parent / args.out
 
     load_env()
     if not os.environ.get("OPENAI_API_KEY"):
