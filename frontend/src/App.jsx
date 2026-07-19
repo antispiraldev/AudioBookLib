@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { fetchBooks, fetchMe, logout, loginUrl } from "./api";
+import { fetchBooks, fetchMe, logout } from "./api";
 import BookCard from "./components/BookCard";
 import UploadModal from "./components/UploadModal";
 import AudioPlayer from "./components/AudioPlayer";
 import FilterBar from "./components/FilterBar";
 import AdminPanel from "./components/AdminPanel";
+import Landing from "./components/Landing";
 import s from "./App.module.css";
 
 const ACTIVE_STATUSES = new Set(["pending", "processing", "synthesizing"]);
@@ -29,6 +30,7 @@ export default function App() {
   const [genre, setGenre] = useState(null);
   const [query, setQuery] = useState("");
   const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [loginDenied, setLoginDenied] = useState(false);
   const isAdmin = user?.role === "admin";
   const route = useHashRoute();
@@ -36,7 +38,10 @@ export default function App() {
   const onAdmin = route === "admin" && isAdmin;
 
   useEffect(() => {
-    fetchMe().then(setUser).catch(() => {});
+    fetchMe()
+      .then(setUser)
+      .catch(() => {})
+      .finally(() => setAuthChecked(true));
     const params = new URLSearchParams(window.location.search);
     if (params.get("login") === "denied") {
       setLoginDenied(true);
@@ -117,6 +122,18 @@ export default function App() {
     setActiveBook((prev) => (prev?.id === updated.id ? updated : prev));
   }
 
+  // Wait for the auth check before rendering anything, so a signed-in user
+  // doesn't get a flash of the landing page on every refresh.
+  if (!authChecked) return null;
+
+  // Logged-out visitors get the landing page instead of the app shell. Note this
+  // is a visual gate only — see Landing.jsx.
+  if (!user) {
+    return (
+      <Landing denied={loginDenied} onDismissDenied={() => setLoginDenied(false)} />
+    );
+  }
+
   return (
     <div style={{ paddingBottom: activeBook && !onAdmin ? 90 : 0 }}>
       <header className={s.header}>
@@ -132,30 +149,14 @@ export default function App() {
               +<span className={s.addLabel}> Add Book</span>
             </button>
           )}
-          {user ? (
-            <>
-              <span className={s.userName}>{user.display_name || user.email}</span>
-              <button className={s.authBtn} onClick={handleLogout}>
-                Sign out
-              </button>
-            </>
-          ) : (
-            <a className={s.authLink} href={loginUrl()}>
-              Sign in
-            </a>
-          )}
-        </div>
-      </header>
-
-      {loginDenied && (
-        <div className={s.denied}>
-          This is a private beta — your Google account isn't on the invite
-          list yet.
-          <button className={s.deniedClose} onClick={() => setLoginDenied(false)}>
-            ✕
+          {/* Only signed-in users reach this render; logged-out visitors get
+              the landing page, which owns the sign-in button. */}
+          <span className={s.userName}>{user.display_name || user.email}</span>
+          <button className={s.authBtn} onClick={handleLogout}>
+            Sign out
           </button>
         </div>
-      )}
+      </header>
 
       {onAdmin ? (
         <AdminPanel />
