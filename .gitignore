@@ -8,7 +8,7 @@ dist/
 *.db
 migration.sql
 backend/scripts/preview_out/
-backend/scripts/ab_out*/
+backend/scripts/ab_*/
 tts_samples/
 
 # Personal droplet tooling — local reference only, deliberately untracked.

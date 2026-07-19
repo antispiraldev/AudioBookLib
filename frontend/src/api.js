@@ -40,6 +40,12 @@ export async function suggestBook(id) {
   return r.json();
 }
 
+export async function fetchNarrators() {
+  const r = await fetch(`${BASE}/books/narrators`);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
 export async function synthesizeBook(id) {
   const r = await fetch(`${BASE}/books/${id}/synthesize`, { method: "POST" });
   if (!r.ok) throw new Error(await parseError(r));

@@ -47,6 +47,7 @@ class BookOut(BaseModel):
     genre: Optional[str] = None
     year: Optional[int] = None
     notes: Optional[str] = None
+    tts_narrator: Optional[str] = None
     tts_instructions: Optional[str] = None
     created_at: datetime
     segments: List[SegmentOut] = []
@@ -89,4 +90,5 @@ class BookUpdate(BaseModel):
     year: Optional[int] = None
     notes: Optional[str] = None
     hidden: Optional[bool] = None
+    tts_narrator: Optional[str] = None
     tts_instructions: Optional[str] = None

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { updateBook, suggestBook } from "../api";
+import { useEffect, useState } from "react";
+import { updateBook, suggestBook, fetchNarrators } from "../api";
 import s from "./Modal.module.css";
 
 export default function EditModal({ book, onClose, onSaved }) {
@@ -9,11 +9,19 @@ export default function EditModal({ book, onClose, onSaved }) {
     genre: book.genre ?? "",
     year: book.year ?? "",
     notes: book.notes ?? "",
+    tts_narrator: book.tts_narrator ?? "",
     tts_instructions: book.tts_instructions ?? "",
   });
+  const [narrators, setNarrators] = useState([]);
   const [loading, setLoading] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchNarrators()
+      .then((d) => setNarrators(d.presets))
+      .catch(() => setNarrators([]));
+  }, []);
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -30,6 +38,7 @@ export default function EditModal({ book, onClose, onSaved }) {
         genre: suggestion.genre ?? f.genre,
         year: suggestion.year != null ? String(suggestion.year) : f.year,
         notes: suggestion.notes ?? f.notes,
+        tts_narrator: f.tts_narrator,
         tts_instructions: f.tts_instructions,
       }));
     } catch (err) {
@@ -51,6 +60,7 @@ export default function EditModal({ book, onClose, onSaved }) {
         genre: form.genre.trim() || null,
         year: form.year ? parseInt(form.year, 10) : null,
         notes: form.notes.trim() || null,
+        tts_narrator: form.tts_narrator || null,
         tts_instructions: form.tts_instructions.trim() || null,
       };
       const updated = await updateBook(book.id, payload);
@@ -140,10 +150,26 @@ export default function EditModal({ book, onClose, onSaved }) {
           </div>
 
           <div>
-            <label className={s.label}>Narration instructions</label>
+            <label className={s.label}>Narrator voice</label>
+            <select
+              className={s.input}
+              value={form.tts_narrator}
+              onChange={(e) => set("tts_narrator", e.target.value)}
+            >
+              <option value="">Default</option>
+              {narrators.map((n) => (
+                <option key={n.key} value={n.key}>
+                  {n.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={s.label}>Custom narration instructions</label>
             <textarea
               className={`${s.input} ${s.textarea}`}
-              placeholder="How the narrator should read this book (tone, pace, style). Leave blank for the default."
+              placeholder="Advanced: overrides the narrator style above with your own wording. Leave blank to use the selected voice."
               value={form.tts_instructions}
               onChange={(e) => set("tts_instructions", e.target.value)}
             />

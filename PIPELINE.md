@@ -21,7 +21,7 @@ flowchart TD
         Review -->|"approve → Celery group"| Synth
 
         subgraph Parallel ["Parallel segment tasks (up to concurrency)"]
-            Synth["synthesize_segment × N\n─────────────\nOpenAI gpt-4o-mini-tts\nvoice: onyx\nper-book instructions\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
+            Synth["synthesize_segment × N\n─────────────\nOpenAI gpt-4o-mini-tts\ntts.resolve(narrator, instructions)\n→ voice + prompt from narrator preset\n(default older_man/onyx)\nfree-text instructions override prompt\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
         end
 
         Synth -->|"chord callback"| Finalize
@@ -31,7 +31,7 @@ flowchart TD
     Finalize --> DB
 
     DB -->|"poll every 3s"| Frontend
-    Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nReview modal + Approve\nEdit modal (+ narration\ninstructions) + Suggest\nReprocess (re-run ingest,\n± replace PDF)"]
+    Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nReview modal + Approve\nEdit modal (+ narrator voice\npreset & custom instructions)\n+ Suggest\nReprocess (re-run ingest,\n± replace PDF)"]
     Frontend -->|"POST /books/{id}/reprocess\narchive audio → audio-archive/,\nclear segments, ± new PDF → R2"| Queue
     Frontend -->|"GET /api/audio/{id}\n→ 302 to signed R2 URL\n(1 hr expiry)"| R2
     R2["Cloudflare R2\n─────────────\nPrivate bucket\nSigned URLs\nNo egress fees"]
@@ -89,7 +89,7 @@ has no public IP, so nothing reaches it over HTTP):
 | Redis           | Broker + result backend                           |
 | PostgreSQL      | Persistent metadata (Alembic migrations)          |
 | Cloudflare R2   | MP3 storage (private bucket, signed URLs)         |
-| OpenAI gpt-4o-mini-tts | Audio synthesis (per-book narration instructions) |
+| OpenAI gpt-4o-mini-tts | Audio synthesis (per-book narrator voice preset + optional custom instructions) |
 | OpenAI gpt-4o-mini | Metadata suggestions + text cleanup polish     |
 | Google OAuth (Authlib) | Sign-in; admin role gates uploads/edits/synthesis |
 
