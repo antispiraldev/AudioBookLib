@@ -8,15 +8,39 @@ import s from "./Landing.module.css";
 //
 // Visual language: a manuscript leaf, laid out asymmetrically like a real codex
 // page — a decorated left margin (the vine rail) beside a left-aligned text
-// block, opened by an illuminated initial. The æ sits inside a lapis square and
-// "do" flows out of it as a drop-cap. Cues are suggestive, not literal
-// medievalism. Vellum ground is procedurally weathered (grain + crinkle) in
-// Landing.module.css. Framing line is the positioning knob.
+// block, opened by an illuminated initial. The æ is drawn as an inline SVG so it
+// fills the lapis panel precisely (and doubles as a reusable mark); "do" flows
+// out of it. Vellum is procedurally weathered in Landing.module.css. Framing
+// line is the positioning knob.
 const TILES = [
   { label: "Upload", body: "Drop in any book or document." },
   { label: "Natural voice", body: "Turned into audio you'd actually listen to." },
   { label: "Anywhere", body: "Your library, on any device." },
 ];
+
+// The illuminated initial: a lapis panel, gilt double keyline, gilt corner
+// flourishes, and the æ scaled to fill it.
+function Initial() {
+  return (
+    <svg className={s.mark} viewBox="0 0 100 100" aria-hidden="true">
+      <rect x="0.75" y="0.75" width="98.5" height="98.5" fill="#274b8e" stroke="#a97c22" strokeWidth="1.5" />
+      <rect x="5" y="5" width="90" height="90" fill="none" stroke="#a97c22" strokeOpacity="0.5" strokeWidth="0.75" />
+      <g fill="none" stroke="#d8b458" strokeOpacity="0.7" strokeWidth="1">
+        <path d="M9 19 A 10 10 0 0 1 19 9" />
+        <path d="M81 9 A 10 10 0 0 1 91 19" />
+        <path d="M91 81 A 10 10 0 0 1 81 91" />
+        <path d="M19 91 A 10 10 0 0 1 9 81" />
+      </g>
+      <text
+        x="50" y="78" textAnchor="middle"
+        fontFamily="Fraunces, Georgia, serif" fontWeight="600" fontSize="104"
+        textLength="94" lengthAdjust="spacingAndGlyphs" fill="#e9dcae"
+      >
+        æ
+      </text>
+    </svg>
+  );
+}
 
 export default function Landing({ denied, onDismissDenied }) {
   return (
@@ -26,17 +50,16 @@ export default function Landing({ denied, onDismissDenied }) {
           <div className={s.rail} aria-hidden="true" />
 
           <div className={s.block}>
-            {/* Illuminated initial: the æ inside a lapis square, "do" flowing
-                out of it as a drop-cap. aria-label keeps the name "Aedo". */}
             <h1 className={s.title} aria-label="Aedo">
-              <span className={s.box} aria-hidden="true">
-                <span className={s.ae}>æ</span>
-              </span>
+              <Initial />
               <span className={s.do} aria-hidden="true">do</span>
             </h1>
             <p className={s.pron} aria-hidden="true">AY-doh</p>
 
-            <div className={s.rule} aria-hidden="true" />
+            <div className={s.divider} aria-hidden="true">
+              <span className={s.diamond} />
+              <span className={s.dline} />
+            </div>
 
             <p className={s.tagline}>Turn any book into a listen.</p>
 

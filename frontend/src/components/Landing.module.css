@@ -1,8 +1,8 @@
 /* Landing — a manuscript leaf. Tokens scoped to .wrap so the app's global dark
    theme is untouched. This surface commits to a single light "vellum" world on
    purpose — signing in is meant to feel like opening the book into the library.
-   The vellum is procedurally weathered (grain + crinkle SVG filters); the only
-   ornament is a floral vine down the left margin. */
+   The vellum is procedurally weathered (grain + mottle + crinkle SVG filters);
+   the margin carries a single angular vine. */
 .wrap {
   --vellum: #ece1c6;
   --vellum-deep: #e4d7b7;
@@ -11,6 +11,7 @@
   --lapis: #274b8e;
   --lapis-deep: #1e3a70;
   --gilt: #a97c22;
+  --gilt-hi: #d8b458;
   --gilt-soft: rgba(169, 124, 34, 0.5);
   --rubric: #a8322a;
   --rule: rgba(43, 33, 19, 0.16);
@@ -21,18 +22,19 @@
   align-items: center;
   justify-content: space-between;
   color: var(--ink);
-  /* Vellum: base wash · warm pools · fine grain (multiply) · crinkle emboss
-     (soft-light) · aged edge vignette. */
+  /* Vellum: base wash · fine grain (multiply) · crinkle emboss (soft-light) ·
+     brown mottle/stains (multiply) · warm pools · aged edge vignette. */
   background-color: var(--vellum);
   background-image:
-    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27220%27%20height%3D%27220%27%3E%3Cfilter%20id%3D%27g%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.9%27%20numOctaves%3D%272%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.05%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23g%29%27%2F%3E%3C%2Fsvg%3E"),
-    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27640%27%20height%3D%27640%27%3E%3Cfilter%20id%3D%27c%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.011%200.015%27%20numOctaves%3D%273%27%20seed%3D%2711%27%20stitchTiles%3D%27stitch%27%20result%3D%27n%27%2F%3E%3CfeDiffuseLighting%20in%3D%27n%27%20surfaceScale%3D%272%27%20diffuseConstant%3D%271%27%20lighting-color%3D%27%23ffffff%27%20result%3D%27l%27%3E%3CfeDistantLight%20azimuth%3D%27235%27%20elevation%3D%2756%27%2F%3E%3C%2FfeDiffuseLighting%3E%3CfeColorMatrix%20in%3D%27l%27%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.35%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23c%29%27%2F%3E%3C%2Fsvg%3E"),
-    radial-gradient(120% 90% at 26% 16%, rgba(255, 250, 235, 0.5), transparent 60%),
-    radial-gradient(120% 90% at 84% 90%, rgba(196, 176, 132, 0.3), transparent 55%),
-    radial-gradient(140% 130% at 50% 50%, transparent 60%, rgba(74, 58, 30, 0.12));
-  background-size: 220px 220px, 640px 640px, cover, cover, cover;
-  background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat;
-  background-blend-mode: multiply, soft-light, normal, normal, normal;
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27200%27%20height%3D%27200%27%3E%3Cfilter%20id%3D%27g%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.85%27%20numOctaves%3D%272%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.14%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23g%29%27%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27620%27%20height%3D%27620%27%3E%3Cfilter%20id%3D%27c%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.012%200.016%27%20numOctaves%3D%273%27%20seed%3D%2711%27%20stitchTiles%3D%27stitch%27%20result%3D%27n%27%2F%3E%3CfeDiffuseLighting%20in%3D%27n%27%20surfaceScale%3D%272.6%27%20diffuseConstant%3D%271.1%27%20lighting-color%3D%27%23ffffff%27%20result%3D%27l%27%3E%3CfeDistantLight%20azimuth%3D%27235%27%20elevation%3D%2748%27%2F%3E%3C%2FfeDiffuseLighting%3E%3CfeColorMatrix%20in%3D%27l%27%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.5%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23c%29%27%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27480%27%20height%3D%27480%27%3E%3Cfilter%20id%3D%27m%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.02%27%20numOctaves%3D%273%27%20seed%3D%274%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27matrix%27%20values%3D%270%200%200%200%200.42%20%200%200%200%200%200.32%20%200%200%200%200%200.16%20%200.55%200.55%200.55%200%200%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.32%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23m%29%27%2F%3E%3C%2Fsvg%3E"),
+    radial-gradient(120% 90% at 26% 16%, rgba(255, 250, 235, 0.45), transparent 60%),
+    radial-gradient(120% 90% at 84% 90%, rgba(196, 176, 132, 0.32), transparent 55%),
+    radial-gradient(140% 130% at 50% 50%, transparent 58%, rgba(74, 58, 30, 0.16));
+  background-size: 200px 200px, 620px 620px, 480px 480px, cover, cover, cover;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: multiply, soft-light, multiply, normal, normal, normal;
 }
 
 .leaf {
@@ -47,18 +49,17 @@
 /* Asymmetric codex layout: a decorated margin column beside the text block. */
 .page {
   display: grid;
-  grid-template-columns: 46px minmax(0, 468px);
-  column-gap: 28px;
+  grid-template-columns: 44px minmax(0, 476px);
+  column-gap: 24px;
   width: 100%;
-  max-width: 542px;
+  max-width: 546px;
 }
 
-/* The floral margin — a single vine down the left edge. */
+/* The floral margin — a single angular vine down the left edge. */
 .rail {
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2744%27%20height%3D%2796%27%3E%3Cpath%20d%3D%27M22%20-2%20C%2010%2022%2C%2034%2044%2C%2022%2066%20C%2013%2082%2C%2022%20100%2C%2022%20100%27%20fill%3D%27none%27%20stroke%3D%27%23a97c22%27%20stroke-width%3D%271.1%27%20opacity%3D%270.5%27%2F%3E%3Cpath%20d%3D%27M22%2022%20C%2033%2017%2C%2039%2024%2C%2036%2033%20C%2028%2033%2C%2022%2029%2C%2022%2022%20Z%27%20fill%3D%27%23a97c22%27%20opacity%3D%270.26%27%2F%3E%3Cpath%20d%3D%27M22%2050%20C%2010%2045%2C%205%2052%2C%208%2061%20C%2016%2061%2C%2022%2057%2C%2022%2050%20Z%27%20fill%3D%27%23a97c22%27%20opacity%3D%270.26%27%2F%3E%3Ccircle%20cx%3D%2722%27%20cy%3D%279%27%20r%3D%272%27%20fill%3D%27%23a97c22%27%20opacity%3D%270.4%27%2F%3E%3Ccircle%20cx%3D%2722%27%20cy%3D%2778%27%20r%3D%272%27%20fill%3D%27%23a97c22%27%20opacity%3D%270.4%27%2F%3E%3C%2Fsvg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2744%27%20height%3D%2772%27%3E%3Cg%20stroke%3D%27%23a97c22%27%20stroke-width%3D%271.2%27%20fill%3D%27none%27%20opacity%3D%270.6%27%3E%3Cpath%20d%3D%27M22%200%20L19%2010%20L24%2020%20L19%2030%20L24%2040%20L19%2050%20L23%2060%20L22%2072%27%2F%3E%3Cpath%20d%3D%27M22%2015%20L34%2011%27%2F%3E%3Cpath%20d%3D%27M22%2035%20L11%2031%27%2F%3E%3Cpath%20d%3D%27M22%2055%20L34%2051%27%2F%3E%3Cpath%20d%3D%27M22%2025%20L28%2022%27%2F%3E%3Cpath%20d%3D%27M22%2045%20L16%2042%27%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%27%23a97c22%27%20opacity%3D%270.34%27%3E%3Cpath%20d%3D%27M22%2015%20L38%207%20L33%2019%20Z%27%2F%3E%3Cpath%20d%3D%27M22%2035%20L6%2027%20L11%2039%20Z%27%2F%3E%3Cpath%20d%3D%27M22%2055%20L38%2047%20L33%2059%20Z%27%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%27%23a97c22%27%20opacity%3D%270.55%27%3E%3Cpath%20d%3D%27M22%201%20L25%204%20L22%207%20L19%204%20Z%27%2F%3E%3Cpath%20d%3D%27M22%2065%20L25%2068%20L22%2071%20L19%2068%20Z%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
   background-repeat: repeat-y;
   background-position: center top;
-  opacity: 0.9;
 }
 
 .block {
@@ -69,51 +70,31 @@
   text-align: left;
 }
 
-/* Illuminated initial + drop-cap wordmark. */
+/* Illuminated initial (inline SVG) + drop-cap wordmark. */
 .title {
   display: flex;
   align-items: flex-end;
-  gap: 14px;
+  gap: 8px;
   margin: 0;
 }
-.box {
-  position: relative;
+.mark {
   flex: 0 0 auto;
-  width: 74px;
-  height: 74px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--lapis);
-  border: 1px solid var(--gilt);
-}
-/* Inner gilt keyline — the fine second rule of an illuminated panel. */
-.box::before {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border: 0.75px solid var(--gilt-soft);
-  pointer-events: none;
-}
-.ae {
-  font-family: "Fraunces", Georgia, serif;
-  font-weight: 600;
-  font-size: 46px;
-  line-height: 1;
-  color: #e9dcae;
+  width: 104px;
+  height: 104px;
+  display: block;
 }
 .do {
   font-family: "Fraunces", Georgia, serif;
   font-weight: 600;
-  font-size: 58px;
-  line-height: 0.9;
-  letter-spacing: -0.01em;
+  font-size: 82px;
+  line-height: 0.82;
+  letter-spacing: -0.015em;
   color: var(--ink);
 }
 
 /* Rubric — special text in red ink; here the pronunciation gloss. */
 .pron {
-  margin: 12px 0 0;
+  margin: 14px 0 0;
   font-family: "Fraunces Text", Georgia, serif;
   font-style: italic;
   font-size: 15px;
@@ -121,17 +102,31 @@
   color: var(--rubric);
 }
 
-.rule {
+/* Sharp lozenge divider. */
+.divider {
   align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 0;
+}
+.diamond {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  background: var(--gilt);
+  transform: rotate(45deg);
+}
+.dline {
+  flex: 1;
   height: 1px;
-  margin: 20px 0 0;
-  background: linear-gradient(90deg, var(--rule), transparent 88%);
+  background: linear-gradient(90deg, var(--gilt-soft), transparent 92%);
 }
 
 .tagline {
-  margin: 18px 0 0;
+  margin: 20px 0 0;
   font-family: "Fraunces Text", Georgia, serif;
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1.4;
   color: var(--ink-soft);
 }
@@ -162,7 +157,7 @@
   width: 21px;
   height: 21px;
   border-radius: 50%;
-  background: linear-gradient(160deg, #d8b458, var(--gilt));
+  background: linear-gradient(160deg, var(--gilt-hi), var(--gilt));
   color: var(--lapis);
   font-family: "Fraunces", Georgia, serif;
   font-weight: 700;
@@ -244,18 +239,15 @@
 
 @media (max-width: 560px) {
   .page {
-    grid-template-columns: 30px minmax(0, 1fr);
-    column-gap: 18px;
-    max-width: 420px;
+    grid-template-columns: 28px minmax(0, 1fr);
+    column-gap: 16px;
+    max-width: 430px;
   }
-  .box {
-    width: 62px;
-    height: 62px;
-  }
-  .ae {
-    font-size: 38px;
+  .mark {
+    width: 82px;
+    height: 82px;
   }
   .do {
-    font-size: 48px;
+    font-size: 64px;
   }
 }
