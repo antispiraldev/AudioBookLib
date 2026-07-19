@@ -58,10 +58,13 @@ services:
     # on the web droplet does NOT start it. For an all-in-one local stack, run:
     #   docker compose --profile worker up -d
     profiles: ["worker"]
-    # concurrency=2: ingest loads large PDFs into memory (PyMuPDF block/span
-    # dicts balloon 20-25MB PDFs to hundreds of MB); >2 in parallel OOMs the
-    # 2GB droplet and 504s the web tier. Raise only alongside more RAM/swap.
-    command: celery -A app.tasks worker --loglevel=info --concurrency=2
+    # Local all-in-one: one worker consuming every queue. Task routing (see
+    # backend/app/celery_app.py) sends ingest to "ingest" and synthesis to
+    # "synth", so this must listen to both (plus legacy "celery"). Production
+    # splits these into two workers at different concurrency
+    # (docker-compose.worker.yml); here concurrency=2 keeps ingest's PyMuPDF
+    # memory balloon from OOMing a single local box.
+    command: celery -A app.tasks worker --loglevel=info -Q synth,ingest,celery --concurrency=2
     volumes:
       - ./storage:/app/storage
       - ./backend:/app

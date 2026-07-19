@@ -48,9 +48,16 @@ before deploying a migration.
 
 - **Cloudflare SSL must stay Flexible** on both zones. The droplet serves plain
   HTTP :80 only; "Full" returns 521.
-- **Worker concurrency stays at 2.** `ingest_book` is memory-heavy — PyMuPDF
+- **Ingest concurrency stays at 2.** `ingest_book` is memory-heavy — PyMuPDF
   balloons a 25MB PDF to hundreds of MB, and >2 parallel ingests OOM'd the box
-  and 504'd the site. Raise only alongside more RAM.
+  and 504'd the site (and the worker droplet has **no swap**, so an OOM is a
+  hard kill). Ingest and synthesis run on **separate queues** (`task_routes` in
+  `celery_app.py`): `worker-ingest` (`-Q ingest --concurrency=2`) must stay at 2;
+  `worker-synth` (`-Q synth,celery`) is network-bound (waiting on OpenAI TTS) and
+  RAM-cheap, so its concurrency can scale (currently 6) — watch worker RAM in the
+  admin panel and OpenAI 429s when raising it. Both run on the worker droplet via
+  `docker-compose.worker.yml`; the local all-in-one worker consumes all queues at
+  concurrency 2.
 - **The worker droplet has no public IP.** It reaches Postgres and Redis over
   the VPC at `10.120.0.2` and the internet via NAT through the web droplet.
   Anything it needs to report must travel through shared Redis or Postgres —

@@ -19,9 +19,11 @@ from ..celery_app import celery
 
 log = logging.getLogger(__name__)
 
-# We don't route tasks to named queues, so everything waits on Celery's
-# default queue, which is a plain Redis list under this key.
-QUEUE_NAME = "celery"
+# Tasks are routed to named queues (see celery_app.task_routes): synthesis to
+# "synth", ingest to "ingest". "celery" is the legacy default, kept so anything
+# unrouted or enqueued before the split still shows up. Each is a plain Redis
+# list; queue_depth sums them for a single "work waiting" number.
+QUEUE_NAMES = ("synth", "ingest", "celery")
 
 
 def broker_redis() -> redis.Redis:
@@ -45,7 +47,7 @@ def worker_stats(timeout: float = 1.0) -> dict:
 
     try:
         r = broker_redis()
-        out["queue_depth"] = r.llen(QUEUE_NAME)
+        out["queue_depth"] = sum(r.llen(q) for q in QUEUE_NAMES)
         out["broker_reachable"] = True
     except Exception:
         # Broker unreachable — inspect would only block for its timeout.

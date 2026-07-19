@@ -13,14 +13,14 @@ flowchart TD
 
     Queue --> Ingest
 
-    subgraph Worker ["Celery Worker — dedicated droplet (concurrency=2)"]
+    subgraph Worker ["Celery Workers — dedicated droplet · ingest queue (concurrency=2) + synth queue (concurrency=6)"]
         Ingest["ingest_book\n─────────────────\nPyMuPDF block/span analysis\n• detect body font size\n• skip headers / footers\n• skip page numbers\n• skip footnotes\n• rejoin hyphenated breaks\n• format headings for TTS\nHeuristic cleanup\n• NFKC / ligatures\n• strip Project Gutenberg header/license\n• strip leading table-of-contents block\n• strip [n] citations, URLs/DOIs\n• drop trailing references section\n• expand e.g./i.e./et al.\ndetect scanned PDFs (chars/page) → needs OCR\nChapter detection (regex + roman validation\n+ body-gap/dedup/longest-run filters)\nChunk ~1800 chars, chapter-aware\n(never crosses a chapter boundary;\nchapter_title on first segment)\ngpt-4o-mini polish (verbatim, parallel)\n→ status: review (pause)"]
 
         Review["Admin review\n─────────────\nGET /books/{id}/segments\nedit segments if needed\nPOST /books/{id}/synthesize"]
         Ingest -->|"status: review"| Review
         Review -->|"approve → Celery group"| Synth
 
-        subgraph Parallel ["Parallel segment tasks (up to concurrency)"]
+        subgraph Parallel ["Parallel segment tasks (up to synth concurrency)"]
             Synth["synthesize_segment × N\n─────────────\nOpenAI gpt-4o-mini-tts\ntts.resolve(narrator, instructions)\n→ voice + prompt from narrator preset\n(default older_man/onyx)\nfree-text instructions override prompt\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
         end
 
@@ -68,9 +68,10 @@ back the `#/admin` view.
 Live infrastructure state rides the shared Redis broker (the worker droplet
 has no public IP, so nothing reaches it over HTTP):
 
-- `GET /api/admin/workers` — queue depth (`LLEN` on the default queue) plus
-  per-worker concurrency/uptime/running tasks via parallel Celery `inspect`
-  broadcasts, which the worker answers over the broker.
+- `GET /api/admin/workers` — queue depth (`LLEN` summed over the `synth`,
+  `ingest`, and legacy `celery` queues) plus per-worker concurrency/uptime/
+  running tasks via parallel Celery `inspect` broadcasts, which the workers
+  answer over the broker.
 - `GET /api/admin/resources` — memory/swap/load with ok/warn/critical severity
   (thresholds tied to the OOM history). The web droplet is read live via
   psutil; the worker self-reports on a `worker_ready` daemon thread that
