@@ -25,7 +25,7 @@ export default function Landing({ denied, onDismissDenied }) {
             <span className={s.ae}>æ</span>do
           </span>
         </h1>
-        <p className={s.pron} aria-hidden="true">ah-EH-doh</p>
+        <p className={s.pron} aria-hidden="true">AY-doh</p>
         <p className={s.tagline}>Turn any book into a listen.</p>
 
         <a className={s.cta} href={loginUrl()}>
