@@ -13,7 +13,12 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Book, PipelineEvent, Segment, User
 from ..schemas import AdminBookRow, PipelineEventOut
-from ..services.monitor import resource_report, worker_stats
+from ..services.monitor import (
+    read_web_logs,
+    read_worker_logs,
+    resource_report,
+    worker_stats,
+)
 from .auth import require_admin
 
 router = APIRouter(dependencies=[Depends(require_admin)])
@@ -109,6 +114,17 @@ def admin_resources():
     """Host resources for both droplets with ok/warn/critical severity — web
     read live via psutil, worker from its heartbeat key in Redis."""
     return resource_report()
+
+
+@router.get("/logs")
+def admin_logs(
+    source: str = Query("web", pattern="^(web|worker)$"),
+    limit: int = Query(200, ge=10, le=1000),
+):
+    """Recent log lines, chronological — the web backend's rotating file, or
+    the worker's Redis-shipped lines."""
+    lines = read_web_logs(limit) if source == "web" else read_worker_logs(limit)
+    return {"source": source, "lines": lines}
 
 
 @router.get("/events", response_model=List[PipelineEventOut])

@@ -9,6 +9,11 @@ load_dotenv()
 
 from .database import init_db
 from .routers import books, audio, auth, admin
+from .services.monitor import setup_web_file_logging
+
+# Module level, not lifespan: uvicorn logs lines (startup, first requests)
+# before the lifespan hook runs, and this process IS the web droplet.
+setup_web_file_logging()
 
 
 @asynccontextmanager

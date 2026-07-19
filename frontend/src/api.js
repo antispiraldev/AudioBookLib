@@ -123,6 +123,13 @@ export async function fetchAdminResources() {
   return r.json();
 }
 
+export async function fetchAdminLogs({ source = "web", limit = 300 } = {}) {
+  const params = new URLSearchParams({ source, limit });
+  const r = await fetch(`${BASE}/admin/logs?${params}`);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
 export async function fetchAdminEvents({ level, limit = 100 } = {}) {
   const params = new URLSearchParams();
   if (level) params.set("level", level);

@@ -18,7 +18,7 @@ verify, so they can't be built blind.
       self-reports mem/swap/load via periodic Celery heartbeat → Redis;
       `GET /api/admin/resources` with ok/warn/critical tied to the OOM
       thresholds, prominent banner on critical
-- [ ] PR6 — logs viewer: `GET /api/admin/logs?source=web|worker`; web via
+- [x] PR6 — logs viewer: `GET /api/admin/logs?source=web|worker`; web via
       rotating file handler, worker pushes to a capped Redis list
 
 Constraint for all three: the worker droplet has no public IP. Anything it

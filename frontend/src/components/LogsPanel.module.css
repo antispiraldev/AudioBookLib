@@ -1,0 +1,53 @@
+.section {
+  margin-top: 28px;
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.tabs {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.tab {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 5px 14px;
+  cursor: pointer;
+}
+.tab + .tab {
+  border-left: 1px solid var(--border);
+}
+.tabActive {
+  background: var(--surface2);
+  color: var(--text);
+  font-weight: 600;
+}
+.error {
+  margin-bottom: 8px;
+  color: var(--danger);
+  font-size: 13px;
+}
+.box {
+  margin: 0;
+  height: 320px;
+  overflow: auto;
+  padding: 12px 14px;
+  background: #000;
+  color: #cdcdcd;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}

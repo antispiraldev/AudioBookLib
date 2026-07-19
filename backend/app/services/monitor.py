@@ -10,6 +10,7 @@ import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from logging.handlers import RotatingFileHandler
 
 import psutil
 import redis
@@ -219,3 +220,76 @@ def resource_report() -> dict:
     order = {"ok": 0, "warn": 1, "critical": 2}
     overall = max((h["severity"] for h in hosts), key=order.get)
     return {"overall": overall, "hosts": hosts}
+
+
+# --- Logs ---------------------------------------------------------------------
+#
+# Same asymmetry as resources: the web backend logs to a rotating file on the
+# storage volume and the endpoint tails it, while the worker (no public IP)
+# ships each formatted line into a capped Redis list the backend reads back.
+
+LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+WEB_LOG_PATH = os.path.join("storage", "logs", "web.log")
+WORKER_LOG_KEY = "aedo:logs:worker"
+WORKER_LOG_MAX = 1000
+# How far back from EOF the web tail reads — plenty for the 1000-line cap
+# the endpoint enforces, tiny compared to the 2MB rotation size.
+TAIL_BYTES = 512_000
+
+
+class RedisListHandler(logging.Handler):
+    """Ships each log line into a capped Redis list; never raises, because a
+    broker hiccup must not take the worker down with it."""
+
+    def __init__(self):
+        super().__init__()
+        self.setFormatter(logging.Formatter(LOG_FORMAT))
+        self._redis = broker_redis()
+
+    def emit(self, record):
+        try:
+            pipe = self._redis.pipeline()
+            pipe.lpush(WORKER_LOG_KEY, self.format(record))
+            pipe.ltrim(WORKER_LOG_KEY, 0, WORKER_LOG_MAX - 1)
+            pipe.execute()
+        except Exception:
+            pass
+
+
+def setup_web_file_logging() -> None:
+    """Called once from main.py (web process only): mirror root + uvicorn
+    access logs into a rotating file the /logs endpoint can tail."""
+    os.makedirs(os.path.dirname(WEB_LOG_PATH), exist_ok=True)
+    handler = RotatingFileHandler(WEB_LOG_PATH, maxBytes=2_000_000, backupCount=2)
+    handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    root = logging.getLogger()
+    root.addHandler(handler)
+    if root.level in (logging.NOTSET, logging.WARNING):
+        root.setLevel(logging.INFO)
+    # uvicorn.access has its own handlers and doesn't propagate to root.
+    logging.getLogger("uvicorn.access").addHandler(handler)
+
+
+def read_web_logs(limit: int) -> list:
+    """Last `limit` lines of the web log file (chronological)."""
+    try:
+        with open(WEB_LOG_PATH, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(max(0, size - TAIL_BYTES))
+            lines = f.read().decode("utf-8", errors="replace").splitlines()
+        if size > TAIL_BYTES and lines:
+            lines = lines[1:]  # first line is almost certainly cut mid-way
+        return lines[-limit:]
+    except FileNotFoundError:
+        return []
+
+
+def read_worker_logs(limit: int) -> list:
+    """Last `limit` shipped worker lines (chronological; list stores newest
+    first). Broker-down returns empty rather than 5xx."""
+    try:
+        raw = broker_redis().lrange(WORKER_LOG_KEY, 0, limit - 1)
+        return [line.decode("utf-8", errors="replace") for line in reversed(raw)]
+    except Exception:
+        return []

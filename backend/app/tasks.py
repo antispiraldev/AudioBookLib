@@ -3,7 +3,12 @@ import os
 import traceback as tb
 
 from celery import chord, group
-from celery.signals import task_failure, worker_ready
+from celery.signals import (
+    after_setup_logger,
+    after_setup_task_logger,
+    task_failure,
+    worker_ready,
+)
 
 from .celery_app import celery
 from .database import SessionLocal
@@ -207,6 +212,19 @@ def _on_task_failure(sender=None, exception=None, einfo=None, args=None, **_):
         f"{type(exception).__name__}: {exception}" if exception else "Task failed",
         str(einfo) if einfo else None,
     )
+
+
+@after_setup_logger.connect
+@after_setup_task_logger.connect
+def _ship_worker_logs(logger=None, **_):
+    """Mirror every worker log line into the capped Redis list the admin
+    panel's logs viewer reads (the worker droplet has no public IP, so this
+    is the only path its logs can travel). Both signals may hand us the same
+    logger — add at most one handler."""
+    from .services.monitor import RedisListHandler
+
+    if logger and not any(isinstance(h, RedisListHandler) for h in logger.handlers):
+        logger.addHandler(RedisListHandler())
 
 
 @worker_ready.connect

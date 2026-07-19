@@ -10,6 +10,7 @@ import BooksTable from "./BooksTable";
 import EventsPanel from "./EventsPanel";
 import WorkersPanel from "./WorkersPanel";
 import ResourcesPanel from "./ResourcesPanel";
+import LogsPanel from "./LogsPanel";
 import s from "./AdminPanel.module.css";
 
 // Order + display labels for the status strip. Kept in sync with the backend's
@@ -108,6 +109,8 @@ export default function AdminPanel() {
       </div>
 
       <EventsPanel events={events} />
+
+      <LogsPanel />
     </div>
   );
 }
