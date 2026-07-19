@@ -69,6 +69,17 @@ def ingest_book(book_id: int) -> None:
                 f"(LLM polish unavailable).",
             )
 
+        # Idempotent rebuild: clear any prior segments for this book before
+        # recreating them. Celery delivers at-least-once, so a long ingest that
+        # outruns the broker's visibility timeout can be redelivered and run
+        # twice — without this, the second run APPENDS a whole second set of
+        # segments sharing the same `order` values. Duplicate orders then collide
+        # on the per-order audio path at synth time (one task's os.remove deletes
+        # the file another is uploading), erroring every segment and wasting the
+        # TTS spend. Deleting first makes a re-run rebuild one clean set.
+        db.query(Segment).filter(Segment.book_id == book_id).delete()
+        db.flush()
+
         for i, (chunk, text) in enumerate(zip(chunks, texts)):
             db.add(Segment(
                 book_id=book_id,
