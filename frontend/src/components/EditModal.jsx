@@ -17,6 +17,13 @@ export default function EditModal({ book, onClose, onSaved }) {
   const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState("");
 
+  // Narration is locked while a book is partway through synthesis — changing the
+  // voice now would splice two voices into one book (the backend rejects it too).
+  const ready = (book.segments ?? []).filter((seg) => seg.status === "ready").length;
+  const total = (book.segments ?? []).length;
+  const narrationLocked =
+    book.status === "synthesizing" || (ready > 0 && ready < total);
+
   useEffect(() => {
     fetchNarrators()
       .then((d) => setNarrators(d.presets))
@@ -154,6 +161,7 @@ export default function EditModal({ book, onClose, onSaved }) {
             <select
               className={s.input}
               value={form.tts_narrator}
+              disabled={narrationLocked}
               onChange={(e) => set("tts_narrator", e.target.value)}
             >
               <option value="">Default</option>
@@ -171,9 +179,18 @@ export default function EditModal({ book, onClose, onSaved }) {
               className={`${s.input} ${s.textarea}`}
               placeholder="Advanced: overrides the narrator style above with your own wording. Leave blank to use the selected voice."
               value={form.tts_instructions}
+              disabled={narrationLocked}
               onChange={(e) => set("tts_instructions", e.target.value)}
             />
           </div>
+
+          {narrationLocked && (
+            <p className={s.hintText}>
+              Narration is locked while this book is generating audio — changing
+              the voice now would splice two voices together. Wait for it to
+              finish, then use “Re-synthesize” to re-voice the whole book.
+            </p>
+          )}
 
           {error && <p className={s.errorText}>{error}</p>}
 

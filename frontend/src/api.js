@@ -55,6 +55,14 @@ export async function synthesizeBook(id) {
 // Retrying a failed book and approving a reviewed one hit the same endpoint.
 export const retryBook = synthesizeBook;
 
+// Re-voice a finished book: archive the current audio, regenerate every segment
+// with the currently selected narrator. Keeps the text (no re-ingest).
+export async function resynthesizeBook(id) {
+  const r = await fetch(`${BASE}/books/${id}/resynthesize`, { method: "POST" });
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
 // Re-extract + re-clean with the current pipeline. `file` is optional — required
 // only when the book's original PDF is no longer on the server.
 export async function reprocessBook(id, file) {

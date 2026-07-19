@@ -29,6 +29,15 @@ was fixed as a prompt problem, not a provider one, and voice is now selectable.
       `backend/scripts/tts_ab.py`; three rounds settled it, no second provider needed
 - [x] Offer voice/prompt options in the UI — admin narrator dropdown (Edit modal),
       `older_man`/onyx and `older_woman`/shimmer, fed by `GET /books/narrators`
+- [ ] **Re-voice cache (deferred).** `POST /books/{id}/resynthesize` currently
+      archives the old take under `audio-archive/{id}/{ts}/` and re-synthesizes
+      from scratch (pays each time). Next step: tag each archived take by a render
+      signature — hash of `(voice, instructions, ordered segment texts)` — and on
+      re-synthesize, if a matching take exists, **restore it for free** instead of
+      calling TTS. Makes A→B→A voice toggles cost nothing. Needs a `rendered`
+      signature persisted per book (set on finalize) + a storage restore/copy
+      helper. Signature must include the text hash so edits never restore stale
+      audio. See `resynthesize_book` in `backend/app/routers/books.py`.
 
 ## Pipeline / content
 
