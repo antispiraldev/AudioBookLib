@@ -65,6 +65,21 @@ Admins read these at `GET /api/admin/events` and in the admin panel's
 "Pipeline events" list. Book status counts, the books table, and events all
 back the `#/admin` view.
 
+Live infrastructure state rides the shared Redis broker (the worker droplet
+has no public IP, so nothing reaches it over HTTP):
+
+- `GET /api/admin/workers` — queue depth (`LLEN` on the default queue) plus
+  per-worker concurrency/uptime/running tasks via parallel Celery `inspect`
+  broadcasts, which the worker answers over the broker.
+- `GET /api/admin/resources` — memory/swap/load with ok/warn/critical severity
+  (thresholds tied to the OOM history). The web droplet is read live via
+  psutil; the worker self-reports on a `worker_ready` daemon thread that
+  refreshes a 120s-TTL Redis key every 30s — a dead worker shows as a stale
+  key, and any critical host raises a banner atop the panel.
+- `GET /api/admin/logs?source=web|worker` — web tails a rotating file on the
+  storage volume; the worker ships each log line into a capped Redis list
+  (1000) from Celery's logger-setup signals.
+
 ## Services
 
 | Service         | Role                                              |
