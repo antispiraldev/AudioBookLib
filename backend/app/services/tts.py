@@ -54,7 +54,7 @@ NARRATORS: dict[str, dict[str, str]] = {
     },
     "older_woman": {
         "label": "Older woman",
-        "voice": "coral",
+        "voice": "shimmer",
         "instructions": _instructions("woman"),
     },
 }
