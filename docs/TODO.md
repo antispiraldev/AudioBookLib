@@ -32,10 +32,25 @@ was fixed as a prompt problem, not a provider one, and voice is now selectable.
 
 ## Pipeline / content
 
-- [ ] Retry the books left in `error` from the 2026-07-17 seeding run — they
-      most likely died from the OOM, not from anything in their content, and
-      ingest has its own droplet now. Query the DB for current `error`/`review`
-      state first; don't trust this note for which books.
+- [x] Retry the seed-batch `error` books — done 2026-07-19: books 16/17/19
+      synthesized clean on retry (old errors were transient). Book 18
+      (popular_delusions) was NOT transient: per-character PDF extraction had
+      letter-spaced its text ("I n t e r…"), blowing the TTS 2000-token limit.
+      Reprocessed with the current extractor.
+- [ ] Book 18 lands back in `review` after its reprocess — **eyeball the text
+      for the letter-spacing pathology before approving**. If it's still
+      garbage, the PDF needs OCR or a replacement copy.
+- [ ] Books 22, 26, 27 sit in `review` awaiting text check + approve.
+
+## Worker throughput
+
+Done in PR #24 (live 2026-07-19): ingest and synthesis split into separate
+Celery queues so synthesis scales without touching the ingest OOM cap —
+`worker-ingest` (`-Q ingest --concurrency=2`) + `worker-synth`
+(`-Q synth,celery --concurrency=6`, measured ~3x throughput, ~755MB RSS).
+
+- [ ] Synth concurrency could go higher (RAM headroom exists) — raise only
+      while watching worker RAM and OpenAI 429s.
 
 ## Infra
 
