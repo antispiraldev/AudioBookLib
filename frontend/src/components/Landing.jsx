@@ -18,13 +18,14 @@ export default function Landing({ denied, onDismissDenied }) {
   return (
     <div className={s.wrap}>
       <main className={s.hero}>
-        {/* Wordmark: the A+E bond into an "Æ" ligature that reads as the
-            lettermark. aria-label keeps the accessible name as "Aedo". */}
+        {/* Wordmark: the a+e bond into a lowercase "æ" ligature that reads as
+            the lettermark. aria-label keeps the accessible name as "Aedo". */}
         <h1 className={s.logo} aria-label="Aedo">
           <span aria-hidden="true">
-            <span className={s.ae}>Æ</span>do
+            <span className={s.ae}>æ</span>do
           </span>
         </h1>
+        <p className={s.pron} aria-hidden="true">ah-EH-doh</p>
         <p className={s.tagline}>Turn any book into a listen.</p>
 
         <a className={s.cta} href={loginUrl()}>
