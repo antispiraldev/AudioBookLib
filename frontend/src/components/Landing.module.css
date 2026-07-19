@@ -1,7 +1,8 @@
-/* Landing — styled as an illuminated "incipit" leaf. Tokens are scoped locally
-   to .wrap so the app's global dark theme is untouched. This surface commits to
-   a single light "vellum" world on purpose: illumination lives on a bright page,
-   and the door into the (dark) library is meant to feel like opening a book. */
+/* Landing — a manuscript leaf. Tokens scoped to .wrap so the app's global dark
+   theme is untouched. This surface commits to a single light "vellum" world on
+   purpose — signing in is meant to feel like opening the book into the library.
+   The vellum is procedurally weathered (grain + crinkle SVG filters); the only
+   ornament is a floral vine down the left margin. */
 .wrap {
   --vellum: #ece1c6;
   --vellum-deep: #e4d7b7;
@@ -20,12 +21,18 @@
   align-items: center;
   justify-content: space-between;
   color: var(--ink);
-  /* Vellum ground: base wash + two faint warm pools + a soft aged vignette. */
+  /* Vellum: base wash · warm pools · fine grain (multiply) · crinkle emboss
+     (soft-light) · aged edge vignette. */
   background-color: var(--vellum);
   background-image:
-    radial-gradient(120% 90% at 28% 18%, rgba(255, 250, 235, 0.55), transparent 60%),
-    radial-gradient(120% 90% at 82% 88%, rgba(196, 176, 132, 0.28), transparent 55%),
-    radial-gradient(140% 120% at 50% 50%, transparent 62%, rgba(74, 58, 30, 0.10));
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27220%27%20height%3D%27220%27%3E%3Cfilter%20id%3D%27g%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.9%27%20numOctaves%3D%272%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.05%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23g%29%27%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27640%27%20height%3D%27640%27%3E%3Cfilter%20id%3D%27c%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.011%200.015%27%20numOctaves%3D%273%27%20seed%3D%2711%27%20stitchTiles%3D%27stitch%27%20result%3D%27n%27%2F%3E%3CfeDiffuseLighting%20in%3D%27n%27%20surfaceScale%3D%272%27%20diffuseConstant%3D%271%27%20lighting-color%3D%27%23ffffff%27%20result%3D%27l%27%3E%3CfeDistantLight%20azimuth%3D%27235%27%20elevation%3D%2756%27%2F%3E%3C%2FfeDiffuseLighting%3E%3CfeColorMatrix%20in%3D%27l%27%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.35%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23c%29%27%2F%3E%3C%2Fsvg%3E"),
+    radial-gradient(120% 90% at 26% 16%, rgba(255, 250, 235, 0.5), transparent 60%),
+    radial-gradient(120% 90% at 84% 90%, rgba(196, 176, 132, 0.3), transparent 55%),
+    radial-gradient(140% 130% at 50% 50%, transparent 60%, rgba(74, 58, 30, 0.12));
+  background-size: 220px 220px, 640px 640px, cover, cover, cover;
+  background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: multiply, soft-light, normal, normal, normal;
 }
 
 .leaf {
@@ -34,78 +41,114 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 40px 24px;
+  padding: 48px 24px;
 }
 
-/* The ruled frame of the page — a fine gilt line with an inner hairline,
-   echoing the ruled margins that framed a manuscript's text block. */
-.incipit {
-  position: relative;
+/* Asymmetric codex layout: a decorated margin column beside the text block. */
+.page {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 468px);
+  column-gap: 28px;
   width: 100%;
-  max-width: 600px;
+  max-width: 542px;
+}
+
+/* The floral margin — a single vine down the left edge. */
+.rail {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2744%27%20height%3D%2796%27%3E%3Cpath%20d%3D%27M22%20-2%20C%2010%2022%2C%2034%2044%2C%2022%2066%20C%2013%2082%2C%2022%20100%2C%2022%20100%27%20fill%3D%27none%27%20stroke%3D%27%23a97c22%27%20stroke-width%3D%271.1%27%20opacity%3D%270.5%27%2F%3E%3Cpath%20d%3D%27M22%2022%20C%2033%2017%2C%2039%2024%2C%2036%2033%20C%2028%2033%2C%2022%2029%2C%2022%2022%20Z%27%20fill%3D%27%23a97c22%27%20opacity%3D%270.26%27%2F%3E%3Cpath%20d%3D%27M22%2050%20C%2010%2045%2C%205%2052%2C%208%2061%20C%2016%2061%2C%2022%2057%2C%2022%2050%20Z%27%20fill%3D%27%23a97c22%27%20opacity%3D%270.26%27%2F%3E%3Ccircle%20cx%3D%2722%27%20cy%3D%279%27%20r%3D%272%27%20fill%3D%27%23a97c22%27%20opacity%3D%270.4%27%2F%3E%3Ccircle%20cx%3D%2722%27%20cy%3D%2778%27%20r%3D%272%27%20fill%3D%27%23a97c22%27%20opacity%3D%270.4%27%2F%3E%3C%2Fsvg%3E");
+  background-repeat: repeat-y;
+  background-position: center top;
+  opacity: 0.9;
+}
+
+.block {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 56px 44px 48px;
-  border: 1.5px solid var(--gilt);
-}
-.incipit::before {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border: 1px solid var(--gilt-soft);
-  pointer-events: none;
+  align-items: flex-start;
+  text-align: left;
 }
 
-.logo {
-  font-family: "Fraunces", Georgia, "Times New Roman", serif;
-  font-size: 56px;
+/* Illuminated initial + drop-cap wordmark. */
+.title {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 0;
+}
+.box {
+  position: relative;
+  flex: 0 0 auto;
+  width: 74px;
+  height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lapis);
+  border: 1px solid var(--gilt);
+}
+/* Inner gilt keyline — the fine second rule of an illuminated panel. */
+.box::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 0.75px solid var(--gilt-soft);
+  pointer-events: none;
+}
+.ae {
+  font-family: "Fraunces", Georgia, serif;
   font-weight: 600;
+  font-size: 46px;
   line-height: 1;
+  color: #e9dcae;
+}
+.do {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: 58px;
+  line-height: 0.9;
   letter-spacing: -0.01em;
   color: var(--ink);
 }
-/* The æ ligature as an illuminated initial: the precious lapis blue, pulled a
-   hair tighter into "do" so the bonded glyph reads as one lettermark. */
-.ae {
-  color: var(--lapis);
-  margin-right: -0.02em;
-}
 
-/* Rubric — scribes marked special text in red ink. The pronunciation gloss
-   gets that treatment: Fraunces italic, vermilion. */
+/* Rubric — special text in red ink; here the pronunciation gloss. */
 .pron {
-  margin-top: 10px;
-  font-family: "Fraunces", Georgia, serif;
+  margin: 12px 0 0;
+  font-family: "Fraunces Text", Georgia, serif;
   font-style: italic;
-  font-size: 16px;
-  letter-spacing: 0.04em;
+  font-size: 15px;
+  letter-spacing: 0.05em;
   color: var(--rubric);
 }
 
+.rule {
+  align-self: stretch;
+  height: 1px;
+  margin: 20px 0 0;
+  background: linear-gradient(90deg, var(--rule), transparent 88%);
+}
+
 .tagline {
-  margin-top: 16px;
-  font-family: "Fraunces", Georgia, serif;
-  font-weight: 400;
-  font-size: 19px;
+  margin: 18px 0 0;
+  font-family: "Fraunces Text", Georgia, serif;
+  font-size: 18px;
+  line-height: 1.4;
   color: var(--ink-soft);
 }
 
 .cta {
-  margin-top: 32px;
+  margin-top: 26px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 10px;
-  min-height: 48px;
-  padding: 0 26px;
-  border-radius: 4px;
+  min-height: 46px;
+  padding: 0 22px;
+  border-radius: 3px;
   border: 1px solid var(--gilt);
   background: var(--lapis);
   color: #f6efdd;
+  font-family: "Fraunces Text", Georgia, serif;
   font-size: 15px;
-  font-weight: 600;
   text-decoration: none;
   transition: background 0.15s ease;
 }
@@ -116,17 +159,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 21px;
+  height: 21px;
   border-radius: 50%;
   background: linear-gradient(160deg, #d8b458, var(--gilt));
   color: var(--lapis);
+  font-family: "Fraunces", Georgia, serif;
   font-weight: 700;
   font-size: 13px;
 }
 
 .framing {
-  margin-top: 14px;
+  margin: 13px 0 0;
+  font-family: "Fraunces Text", Georgia, serif;
+  font-style: italic;
   font-size: 13px;
   color: var(--ink-soft);
 }
@@ -134,15 +180,15 @@
 .denied {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 12px;
   margin-top: 20px;
-  padding: 10px 16px;
+  padding: 10px 15px;
   background: var(--vellum-deep);
   border: 1px solid var(--rubric);
-  border-radius: 4px;
-  color: var(--ink);
+  border-radius: 3px;
+  font-family: "Fraunces Text", Georgia, serif;
   font-size: 14px;
+  color: var(--ink);
 }
 .deniedClose {
   background: transparent;
@@ -151,58 +197,44 @@
   flex-shrink: 0;
 }
 
-/* Marginal ornament — hairline rules flanking an aldus leaf. */
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 62%;
-  margin: 44px 0 4px;
-}
-.rule {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gilt-soft) 30%, var(--gilt-soft) 70%, transparent);
-}
-.lozenge {
-  color: var(--gilt);
-  font-size: 16px;
-  line-height: 1;
-}
-
+/* Tiles as marginal notes — a short ruled list, not cards. */
 .tiles {
-  margin-top: 28px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 22px;
-  width: 100%;
+  margin: 30px 0 0;
+  padding: 0;
   list-style: none;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
 }
 .tile {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding-top: 14px;
+  gap: 3px;
+  padding: 12px 0;
   border-top: 1px solid var(--rule);
-  text-align: left;
 }
-.tileTitle {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.tile:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.tileLabel {
+  font-family: "Fraunces Text", Georgia, serif;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  font-size: 14px;
   color: var(--ink);
 }
 .tileBody {
-  font-size: 13px;
-  line-height: 1.45;
+  font-family: "Fraunces Text", Georgia, serif;
+  font-size: 14px;
+  line-height: 1.4;
   color: var(--ink-soft);
 }
 
-/* Colophon — the scribe's closing note. Fraunces italic, oldstyle figures. */
+/* Colophon — the scribe's closing note. Italic, oldstyle figures. */
 .colophon {
   padding: 22px;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Fraunces Text", Georgia, serif;
   font-style: italic;
   font-size: 13px;
   letter-spacing: 0.03em;
@@ -211,24 +243,19 @@
 }
 
 @media (max-width: 560px) {
-  .incipit {
-    padding: 40px 24px 36px;
+  .page {
+    grid-template-columns: 30px minmax(0, 1fr);
+    column-gap: 18px;
+    max-width: 420px;
   }
-  .logo {
-    font-size: 44px;
+  .box {
+    width: 62px;
+    height: 62px;
   }
-  .divider {
-    width: 78%;
+  .ae {
+    font-size: 38px;
   }
-  .tiles {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-  .tile {
-    padding: 14px 0;
-  }
-  .tile:first-child {
-    padding-top: 0;
-    border-top: none;
+  .do {
+    font-size: 48px;
   }
 }

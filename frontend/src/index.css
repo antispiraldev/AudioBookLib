@@ -27,6 +27,21 @@
   font-display: swap;
   src: url("./assets/fonts/fraunces-italic-400.woff2") format("woff2");
 }
+/* Fraunces Text — the low-contrast optical cut, for body copy at small sizes. */
+@font-face {
+  font-family: "Fraunces Text";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/fraunces-text-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Fraunces Text";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/fraunces-text-italic-400.woff2") format("woff2");
+}
 
 :root {
   --bg: #0f0f0f;
