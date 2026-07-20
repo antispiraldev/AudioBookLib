@@ -1,253 +1,60 @@
-/* Landing — a manuscript leaf. Tokens scoped to .wrap so the app's global dark
-   theme is untouched. This surface commits to a single light "vellum" world on
-   purpose — signing in is meant to feel like opening the book into the library.
-   The vellum is procedurally weathered (grain + mottle + crinkle SVG filters);
-   the margin carries a single angular vine. */
+/* Landing — an illuminated manuscript leaf (International Gothic), aping a
+   Book-of-Hours page. Fixed-canvas 760x1000 codex leaf, scaled to fit on small
+   screens. Ornate border + textures live in ../assets and as data-URIs here.
+   Tokens scoped to .wrap so the app's global dark theme is untouched. Single
+   light 'vellum' world on purpose. VISUAL gate only — see Landing.jsx. */
 .wrap {
-  --vellum: #ece1c6;
-  --vellum-deep: #e4d7b7;
-  --ink: #2b2113;
-  --ink-soft: #63543b;
-  --lapis: #274b8e;
-  --lapis-deep: #1e3a70;
-  --gilt: #a97c22;
-  --gilt-hi: #d8b458;
-  --gilt-soft: rgba(169, 124, 34, 0.5);
-  --rubric: #a8322a;
-  --rule: rgba(43, 33, 19, 0.16);
-
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--ink);
-  /* Vellum: base wash · fine grain (multiply) · crinkle emboss (soft-light) ·
-     brown mottle/stains (multiply) · warm pools · aged edge vignette. */
-  background-color: var(--vellum);
-  background-image:
-    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27200%27%20height%3D%27200%27%3E%3Cfilter%20id%3D%27g%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.85%27%20numOctaves%3D%272%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.14%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23g%29%27%2F%3E%3C%2Fsvg%3E"),
-    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27620%27%20height%3D%27620%27%3E%3Cfilter%20id%3D%27c%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.012%200.016%27%20numOctaves%3D%273%27%20seed%3D%2711%27%20stitchTiles%3D%27stitch%27%20result%3D%27n%27%2F%3E%3CfeDiffuseLighting%20in%3D%27n%27%20surfaceScale%3D%272.6%27%20diffuseConstant%3D%271.1%27%20lighting-color%3D%27%23ffffff%27%20result%3D%27l%27%3E%3CfeDistantLight%20azimuth%3D%27235%27%20elevation%3D%2748%27%2F%3E%3C%2FfeDiffuseLighting%3E%3CfeColorMatrix%20in%3D%27l%27%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.5%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23c%29%27%2F%3E%3C%2Fsvg%3E"),
-    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27480%27%20height%3D%27480%27%3E%3Cfilter%20id%3D%27m%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.02%27%20numOctaves%3D%273%27%20seed%3D%274%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27matrix%27%20values%3D%270%200%200%200%200.42%20%200%200%200%200%200.32%20%200%200%200%200%200.16%20%200.55%200.55%200.55%200%200%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.32%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23m%29%27%2F%3E%3C%2Fsvg%3E"),
-    radial-gradient(120% 90% at 26% 16%, rgba(255, 250, 235, 0.45), transparent 60%),
-    radial-gradient(120% 90% at 84% 90%, rgba(196, 176, 132, 0.32), transparent 55%),
-    radial-gradient(140% 130% at 50% 50%, transparent 58%, rgba(74, 58, 30, 0.16));
-  background-size: 200px 200px, 620px 620px, 480px 480px, cover, cover, cover;
-  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat, no-repeat;
-  background-blend-mode: multiply, soft-light, multiply, normal, normal, normal;
+  --ink:#2c2216; --blue:#26438a; --gold:#b0851f; --gold-hi:#e6c766; --gold-deep:#8a6414;
+  --rose:#b5566b; --rose-deep:#7e2d3a; --white:#f4ecd8; --rubric:#a8322a;
+  min-height:100vh; background:#171310; display:flex; justify-content:center;
+  align-items:flex-start; padding:24px 12px; overflow-x:hidden;
 }
-
 .leaf {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 48px 24px;
+  position:relative; flex:0 0 auto; width:760px; height:1000px;
+  background-color:#e9dfc4;
+  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27200%27%20height%3D%27200%27%3E%3Cfilter%20id%3D%27g%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.9%27%20numOctaves%3D%272%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.09%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23g%29%27%2F%3E%3C%2Fsvg%3E"),url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27340%27%20height%3D%27340%27%3E%3Cfilter%20id%3D%27f%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.16%27%20numOctaves%3D%272%27%20seed%3D%279%27%2F%3E%3CfeColorMatrix%20type%3D%27matrix%27%20values%3D%270%200%200%200%200.36%20%200%200%200%200%200.24%20%200%200%200%200%200.12%20%200%200%200%2012%20-7%27%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23f%29%27%20opacity%3D%270.5%27%2F%3E%3C%2Fsvg%3E"),url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27620%27%20height%3D%27620%27%3E%3Cfilter%20id%3D%27c%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.012%200.016%27%20numOctaves%3D%273%27%20seed%3D%2711%27%20stitchTiles%3D%27stitch%27%20result%3D%27n%27%2F%3E%3CfeDiffuseLighting%20in%3D%27n%27%20surfaceScale%3D%272%27%20diffuseConstant%3D%271.1%27%20lighting-color%3D%27%23ffffff%27%20result%3D%27l%27%3E%3CfeDistantLight%20azimuth%3D%27235%27%20elevation%3D%2752%27%2F%3E%3C%2FfeDiffuseLighting%3E%3CfeColorMatrix%20in%3D%27l%27%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.4%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23c%29%27%2F%3E%3C%2Fsvg%3E"),
+    radial-gradient(120% 90% at 24% 14%,rgba(255,250,235,.4),transparent 60%),
+    radial-gradient(130% 120% at 50% 50%,transparent 60%,rgba(74,58,30,.18));
+  background-size:200px,340px,620px,cover,cover;
+  background-blend-mode:multiply,multiply,soft-light,normal,normal;
+  box-shadow:0 30px 80px -30px rgba(0,0,0,.8);
 }
+.frame { position:absolute; inset:0; background:url("../assets/border.svg") center/100% 100% no-repeat; pointer-events:none; }
+.goldbar { position:absolute; left:58px; top:120px; bottom:120px; width:9px;
+  background:linear-gradient(90deg,var(--gold-deep),var(--gold-hi) 45%,var(--gold) 55%,var(--gold-deep));
+  border:.5px solid var(--gold-deep); }
+.content { position:absolute; left:96px; right:70px; top:120px; bottom:96px;
+  display:flex; flex-direction:column; align-items:flex-start; }
+.title { display:flex; align-items:flex-end; gap:10px; margin:0; }
+.mark { width:112px; height:112px; display:block; filter:drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+.mark svg { display:block; }
+.do { font-family:'UnifrakturCook',serif; font-weight:700; font-size:92px; line-height:.8; color:var(--ink); }
+.pron { margin:16px 0 0; font-family:'Fraunces Text',serif; font-style:italic; font-size:16px; letter-spacing:.05em; color:var(--rubric); }
+.divider { align-self:stretch; display:flex; align-items:center; gap:12px; margin:20px 0 0; }
+.diamond { width:7px; height:7px; background:var(--gold); transform:rotate(45deg); }
+.dline { flex:1; height:1px; background:linear-gradient(90deg,#b0851fdd,transparent 92%); }
+.tagline { margin:20px 0 0; font-family:'Fraunces Text',serif; font-size:21px; line-height:1.4; color:var(--ink); max-width:30ch; }
+.cta { margin-top:26px; display:inline-flex; align-items:center; gap:10px; min-height:48px; padding:0 24px; border-radius:3px;
+  border:1px solid var(--gold); background:var(--blue); color:var(--white); font-family:'Fraunces Text',serif; font-size:16px; text-decoration:none; }
+.g { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%;
+  background:linear-gradient(160deg,var(--gold-hi),var(--gold)); color:var(--blue); font-family:'Fraunces',serif; font-weight:700; font-size:13px; }
+.framing { margin:14px 0 0; font-family:'Fraunces Text',serif; font-style:italic; font-size:14px; color:var(--rose-deep); }
+.denied { margin-top:18px; padding:9px 14px; background:#e4d7b7; border:1px solid var(--rubric);
+  display:flex; align-items:center; gap:12px; font-family:'Fraunces Text',serif; font-size:14px; color:var(--ink); }
+.deniedClose { background:transparent; border:none; color:var(--rose-deep); font-size:15px; }
+.tiles { margin:30px 0 0; padding:0; list-style:none; align-self:stretch; display:flex; flex-direction:column; }
+.tile { display:flex; align-items:baseline; gap:10px; padding:13px 0; border-top:1px solid rgba(44,34,22,.18); }
+.tile:first-child { border-top:none; }
+.versal { flex:0 0 auto; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center;
+  background:var(--blue); color:var(--gold-hi); font-family:'UnifrakturCook',serif; font-weight:700; font-size:15px; border:1px solid var(--gold); }
+.tl { font-family:'Fraunces Text',serif; font-variant:small-caps; letter-spacing:.06em; font-size:15px; color:var(--ink); }
+.tb { font-family:'Fraunces Text',serif; font-size:15px; color:var(--ink); }
+.colophon { position:absolute; left:0; right:0; bottom:34px; text-align:center; font-family:'Fraunces Text',serif;
+  font-style:italic; font-size:13px; letter-spacing:.03em; font-variant-numeric:oldstyle-nums; color:var(--rose-deep); }
 
-/* Asymmetric codex layout: a decorated margin column beside the text block. */
-.page {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 476px);
-  column-gap: 24px;
-  width: 100%;
-  max-width: 546px;
-}
-
-/* The floral margin — a single angular vine down the left edge. */
-.rail {
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2744%27%20height%3D%2772%27%3E%3Cg%20stroke%3D%27%23a97c22%27%20stroke-width%3D%271.2%27%20fill%3D%27none%27%20opacity%3D%270.6%27%3E%3Cpath%20d%3D%27M22%200%20L19%2010%20L24%2020%20L19%2030%20L24%2040%20L19%2050%20L23%2060%20L22%2072%27%2F%3E%3Cpath%20d%3D%27M22%2015%20L34%2011%27%2F%3E%3Cpath%20d%3D%27M22%2035%20L11%2031%27%2F%3E%3Cpath%20d%3D%27M22%2055%20L34%2051%27%2F%3E%3Cpath%20d%3D%27M22%2025%20L28%2022%27%2F%3E%3Cpath%20d%3D%27M22%2045%20L16%2042%27%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%27%23a97c22%27%20opacity%3D%270.34%27%3E%3Cpath%20d%3D%27M22%2015%20L38%207%20L33%2019%20Z%27%2F%3E%3Cpath%20d%3D%27M22%2035%20L6%2027%20L11%2039%20Z%27%2F%3E%3Cpath%20d%3D%27M22%2055%20L38%2047%20L33%2059%20Z%27%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%27%23a97c22%27%20opacity%3D%270.55%27%3E%3Cpath%20d%3D%27M22%201%20L25%204%20L22%207%20L19%204%20Z%27%2F%3E%3Cpath%20d%3D%27M22%2065%20L25%2068%20L22%2071%20L19%2068%20Z%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
-  background-repeat: repeat-y;
-  background-position: center top;
-}
-
-.block {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-}
-
-/* Illuminated initial (inline SVG) + drop-cap wordmark. */
-.title {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  margin: 0;
-}
-.mark {
-  flex: 0 0 auto;
-  width: 104px;
-  height: 104px;
-  display: block;
-}
-.do {
-  font-family: "Fraunces", Georgia, serif;
-  font-weight: 600;
-  font-size: 82px;
-  line-height: 0.82;
-  letter-spacing: -0.015em;
-  color: var(--ink);
-}
-
-/* Rubric — special text in red ink; here the pronunciation gloss. */
-.pron {
-  margin: 14px 0 0;
-  font-family: "Fraunces Text", Georgia, serif;
-  font-style: italic;
-  font-size: 15px;
-  letter-spacing: 0.05em;
-  color: var(--rubric);
-}
-
-/* Sharp lozenge divider. */
-.divider {
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 22px 0 0;
-}
-.diamond {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 auto;
-  background: var(--gilt);
-  transform: rotate(45deg);
-}
-.dline {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, var(--gilt-soft), transparent 92%);
-}
-
-.tagline {
-  margin: 20px 0 0;
-  font-family: "Fraunces Text", Georgia, serif;
-  font-size: 19px;
-  line-height: 1.4;
-  color: var(--ink-soft);
-}
-
-.cta {
-  margin-top: 26px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 46px;
-  padding: 0 22px;
-  border-radius: 3px;
-  border: 1px solid var(--gilt);
-  background: var(--lapis);
-  color: #f6efdd;
-  font-family: "Fraunces Text", Georgia, serif;
-  font-size: 15px;
-  text-decoration: none;
-  transition: background 0.15s ease;
-}
-.cta:hover {
-  background: var(--lapis-deep);
-}
-.g {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 21px;
-  height: 21px;
-  border-radius: 50%;
-  background: linear-gradient(160deg, var(--gilt-hi), var(--gilt));
-  color: var(--lapis);
-  font-family: "Fraunces", Georgia, serif;
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.framing {
-  margin: 13px 0 0;
-  font-family: "Fraunces Text", Georgia, serif;
-  font-style: italic;
-  font-size: 13px;
-  color: var(--ink-soft);
-}
-
-.denied {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 20px;
-  padding: 10px 15px;
-  background: var(--vellum-deep);
-  border: 1px solid var(--rubric);
-  border-radius: 3px;
-  font-family: "Fraunces Text", Georgia, serif;
-  font-size: 14px;
-  color: var(--ink);
-}
-.deniedClose {
-  background: transparent;
-  color: var(--ink-soft);
-  font-size: 15px;
-  flex-shrink: 0;
-}
-
-/* Tiles as marginal notes — a short ruled list, not cards. */
-.tiles {
-  margin: 30px 0 0;
-  padding: 0;
-  list-style: none;
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-}
-.tile {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 12px 0;
-  border-top: 1px solid var(--rule);
-}
-.tile:first-child {
-  border-top: none;
-  padding-top: 0;
-}
-.tileLabel {
-  font-family: "Fraunces Text", Georgia, serif;
-  font-variant: small-caps;
-  letter-spacing: 0.06em;
-  font-size: 14px;
-  color: var(--ink);
-}
-.tileBody {
-  font-family: "Fraunces Text", Georgia, serif;
-  font-size: 14px;
-  line-height: 1.4;
-  color: var(--ink-soft);
-}
-
-/* Colophon — the scribe's closing note. Italic, oldstyle figures. */
-.colophon {
-  padding: 22px;
-  font-family: "Fraunces Text", Georgia, serif;
-  font-style: italic;
-  font-size: 13px;
-  letter-spacing: 0.03em;
-  font-variant-numeric: oldstyle-nums;
-  color: var(--ink-soft);
-}
-
-@media (max-width: 560px) {
-  .page {
-    grid-template-columns: 28px minmax(0, 1fr);
-    column-gap: 16px;
-    max-width: 430px;
-  }
-  .mark {
-    width: 82px;
-    height: 82px;
-  }
-  .do {
-    font-size: 64px;
-  }
+/* Scale the whole leaf to fit narrow screens; negative margin reclaims the
+   space the CSS transform doesn't. */
+@media (max-width:812px) {
+  .leaf { transform:scale(calc((100vw - 24px) / 760)); transform-origin:top center;
+    margin-bottom:calc(((100vw - 24px) / 760) * 1000px - 1000px); }
 }

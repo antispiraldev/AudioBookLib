@@ -27,6 +27,14 @@
   font-display: swap;
   src: url("./assets/fonts/fraunces-italic-400.woff2") format("woff2");
 }
+/* UnifrakturCook — blackletter (textura), for the wordmark "do" and versals. */
+@font-face {
+  font-family: "UnifrakturCook";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./assets/fonts/unifraktur-cook-700.woff2") format("woff2");
+}
 /* Fraunces Text — the low-contrast optical cut, for body copy at small sizes. */
 @font-face {
   font-family: "Fraunces Text";
