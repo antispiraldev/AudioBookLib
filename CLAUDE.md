@@ -50,12 +50,18 @@ before deploying a migration.
   HTTP :80 only; "Full" returns 521.
 - **Ingest concurrency stays at 2.** `ingest_book` is memory-heavy — PyMuPDF
   balloons a 25MB PDF to hundreds of MB, and >2 parallel ingests OOM'd the box
-  and 504'd the site (and the worker droplet has **no swap**, so an OOM is a
-  hard kill). Ingest and synthesis run on **separate queues** (`task_routes` in
-  `celery_app.py`): `worker-ingest` (`-Q ingest --concurrency=2`) must stay at 2;
-  `worker-synth` (`-Q synth,celery`) is network-bound (waiting on OpenAI TTS) and
-  RAM-cheap, so its concurrency can scale (currently 8) — watch worker RAM in the
-  admin panel and OpenAI 429s when raising it. Both run on the worker droplet via
+  and 504'd the site (the worker droplet now has a 2 GB swap file, but that's a
+  cushion, not capacity). Ingest and synthesis run on **separate queues**
+  (`task_routes` in `celery_app.py`). Worker concurrency is set via `.env` on
+  the droplet — `INGEST_CONCURRENCY` (stays 2) and `SYNTH_CONCURRENCY`
+  (prod currently 16; repo default 8) — so tuning is an `.env` edit +
+  `docker compose -f docker-compose.worker.yml up -d`, no rebuild or PR. For a
+  no-restart nudge, `celery -A app.tasks control pool_grow N` / `pool_shrink N`
+  resizes the running pool (lost on restart; make it durable in `.env`).
+  Synth is network-bound (waiting on OpenAI TTS): the account TTS limit is 10k
+  RPM vs ~32 used at 8 slots, so the real limits are worker RAM (~110MB per
+  prefork slot — ~16-20 max on the 4 GB box; beyond that switch the pool to
+  threads) and OpenAI 429s. Both workers run on the worker droplet via
   `docker-compose.worker.yml`; the local all-in-one worker consumes all queues at
   concurrency 2.
 - **The worker droplet has no public IP.** It reaches Postgres and Redis over
