@@ -54,7 +54,7 @@ before deploying a migration.
   hard kill). Ingest and synthesis run on **separate queues** (`task_routes` in
   `celery_app.py`): `worker-ingest` (`-Q ingest --concurrency=2`) must stay at 2;
   `worker-synth` (`-Q synth,celery`) is network-bound (waiting on OpenAI TTS) and
-  RAM-cheap, so its concurrency can scale (currently 8) — watch worker RAM in the
+  RAM-cheap, so its concurrency can scale (currently 16; account TTS limit is 10k RPM — measured ~32 RPM at 8 slots, so OpenAI is nowhere near the constraint) — watch worker RAM in the
   admin panel and OpenAI 429s when raising it. Both run on the worker droplet via
   `docker-compose.worker.yml`; the local all-in-one worker consumes all queues at
   concurrency 2.

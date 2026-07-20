@@ -31,7 +31,7 @@ x-worker-env: &worker-env
 services:
   worker-synth:
     build: ./backend
-    command: celery -A app.tasks worker --loglevel=info -n synth@%h -Q synth,celery --concurrency=8
+    command: celery -A app.tasks worker --loglevel=info -n synth@%h -Q synth,celery --concurrency=16
     volumes:
       - ./storage:/app/storage
       - ./backend:/app
