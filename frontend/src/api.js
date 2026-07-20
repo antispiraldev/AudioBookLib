@@ -144,3 +144,59 @@ export async function fetchAdminEvents({ level, limit = 100 } = {}) {
   if (!r.ok) throw new Error(await parseError(r));
   return r.json();
 }
+
+// --- A/B tests (viewer) ---
+
+export async function fetchABTests() {
+  const r = await fetch(`${BASE}/ab-tests/`);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
+export async function voteABTest(id, choice) {
+  const r = await fetch(`${BASE}/ab-tests/${id}/vote`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ choice }),
+  });
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
+// --- A/B tests + access (admin) ---
+
+export async function fetchAdminUsers() {
+  const r = await fetch(`${BASE}/admin/users`);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
+export async function updateUserAccess(id, abTestAccess) {
+  const r = await fetch(`${BASE}/admin/users/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ab_test_access: abTestAccess }),
+  });
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
+export async function fetchAdminABTests() {
+  const r = await fetch(`${BASE}/admin/ab-tests`);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
+export async function createABTest(formData) {
+  const r = await fetch(`${BASE}/admin/ab-tests`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
+export async function deleteABTest(id) {
+  const r = await fetch(`${BASE}/admin/ab-tests/${id}`, { method: "DELETE" });
+  if (!r.ok) throw new Error(await parseError(r));
+}

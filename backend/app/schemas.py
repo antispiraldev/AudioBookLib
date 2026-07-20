@@ -8,8 +8,31 @@ class UserOut(BaseModel):
     email: str
     display_name: Optional[str] = None
     role: str
+    ab_test_access: bool = False
 
     model_config = {"from_attributes": True}
+
+
+class AdminUserRow(BaseModel):
+    """A row in the admin access list — who has signed in and whether they can
+    see the A/B tests."""
+    id: int
+    email: str
+    display_name: Optional[str] = None
+    role: str
+    ab_test_access: bool = False
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class UserAccessUpdate(BaseModel):
+    ab_test_access: bool
+
+
+class ABTestVoteIn(BaseModel):
+    # An option key ("A"/"B") or "no_diff"; validated against the test's options.
+    choice: str
 
 
 class SegmentOut(BaseModel):

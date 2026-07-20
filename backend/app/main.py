@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from .database import init_db
-from .routers import books, audio, auth, admin
+from .routers import books, audio, auth, admin, ab_tests
 from .services.monitor import setup_web_file_logging
 
 # Module level, not lifespan: uvicorn logs lines (startup, first requests)
@@ -41,3 +41,4 @@ app.include_router(books.router, prefix="/api/books", tags=["books"])
 app.include_router(audio.router, prefix="/api/audio", tags=["audio"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(ab_tests.router, prefix="/api/ab-tests", tags=["ab-tests"])

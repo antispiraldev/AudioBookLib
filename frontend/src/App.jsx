@@ -5,13 +5,14 @@ import UploadModal from "./components/UploadModal";
 import AudioPlayer from "./components/AudioPlayer";
 import FilterBar from "./components/FilterBar";
 import AdminPanel from "./components/AdminPanel";
+import ABTests from "./components/ABTests";
 import Landing from "./components/Landing";
 import s from "./App.module.css";
 
 const ACTIVE_STATUSES = new Set(["pending", "processing", "synthesizing"]);
 
-// Minimal hash-based routing — only two views (library + admin), so a full
-// router isn't worth the dependency. Returns "admin" for #/admin, else "library".
+// Minimal hash-based routing — a full router isn't worth the dependency.
+// "#/admin" → admin, "#/ab-tests" → abtests, anything else → library.
 function useHashRoute() {
   const [hash, setHash] = useState(() => window.location.hash);
   useEffect(() => {
@@ -19,7 +20,9 @@ function useHashRoute() {
     window.addEventListener("hashchange", onChange);
     return () => window.removeEventListener("hashchange", onChange);
   }, []);
-  return hash === "#/admin" ? "admin" : "library";
+  if (hash === "#/admin") return "admin";
+  if (hash === "#/ab-tests") return "abtests";
+  return "library";
 }
 
 export default function App() {
@@ -33,9 +36,12 @@ export default function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [loginDenied, setLoginDenied] = useState(false);
   const isAdmin = user?.role === "admin";
+  // Admins always have A/B access; other users need the explicit grant.
+  const canAB = isAdmin || user?.ab_test_access;
   const route = useHashRoute();
-  // Only admins can be on the admin view; anyone else falls back to the library.
+  // Views fall back to the library when the user lacks access to them.
   const onAdmin = route === "admin" && isAdmin;
+  const onAB = route === "abtests" && canAB;
 
   useEffect(() => {
     fetchMe()
@@ -135,16 +141,21 @@ export default function App() {
   }
 
   return (
-    <div style={{ paddingBottom: activeBook && !onAdmin ? 90 : 0 }}>
+    <div style={{ paddingBottom: activeBook && !onAdmin && !onAB ? 90 : 0 }}>
       <header className={s.header}>
         <h1 className={s.logo}>Aedo</h1>
         <div className={s.right}>
+          {canAB && (
+            <a className={s.navLink} href={onAB ? "#/" : "#/ab-tests"}>
+              {onAB ? "Library" : "A/B tests"}
+            </a>
+          )}
           {isAdmin && (
             <a className={s.navLink} href={onAdmin ? "#/" : "#/admin"}>
               {onAdmin ? "Library" : "Admin"}
             </a>
           )}
-          {isAdmin && !onAdmin && (
+          {isAdmin && !onAdmin && !onAB && (
             <button className={s.addBtn} onClick={() => setShowUpload(true)}>
               +<span className={s.addLabel}> Add Book</span>
             </button>
@@ -160,6 +171,8 @@ export default function App() {
 
       {onAdmin ? (
         <AdminPanel />
+      ) : onAB ? (
+        <ABTests />
       ) : books.length === 0 ? (
         <div className={s.empty}>
           <p>No books yet.</p>
@@ -201,14 +214,14 @@ export default function App() {
         </>
       )}
 
-      {showUpload && !onAdmin && (
+      {showUpload && !onAdmin && !onAB && (
         <UploadModal
           onClose={() => setShowUpload(false)}
           onUploaded={handleUploaded}
         />
       )}
 
-      {activeBook && !onAdmin && (
+      {activeBook && !onAdmin && !onAB && (
         <AudioPlayer
           book={activeBook}
           playing={playing}
