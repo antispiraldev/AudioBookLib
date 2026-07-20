@@ -28,6 +28,12 @@ was fixed as a prompt problem, not a provider one, and voice is now selectable.
       `backend/scripts/tts_ab.py`; three rounds settled it, no second provider needed
 - [x] Offer voice/prompt options in the UI — admin narrator dropdown (Edit modal),
       `older_man`/onyx and `older_woman`/shimmer, fed by `GET /books/narrators`
+- [ ] Multi-voice narrations + listener toggle (branch `worktree-voice-narration-toggle`,
+      not yet merged): a book can be rendered in several narrator presets
+      (`segment_audio` table, `POST/DELETE /books/{id}/narrations`), and the player
+      has a voice switch that keeps position and remembers the choice per book.
+      Admin generates extra voices from the Edit modal. Verify in prod after deploy;
+      the alt-render progress isn't shown on book cards, only in the Edit modal.
 
 ## Pipeline / content
 
