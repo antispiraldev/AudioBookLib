@@ -1,0 +1,66 @@
+/* Landing — an illuminated manuscript leaf (International Gothic), aping a
+   Book-of-Hours page. Fixed-canvas 760x1000 codex leaf, scaled to fit on small
+   screens. Ornate border + textures live in ../assets and as data-URIs here.
+   Tokens scoped to .wrap so the app's global dark theme is untouched. Single
+   light 'vellum' world on purpose. VISUAL gate only — see Landing.jsx. */
+.wrap {
+  --ink:#2c2216; --blue:#26438a; --gold:#b0851f; --gold-hi:#e6c766; --gold-deep:#8a6414;
+  --rose:#b5566b; --rose-deep:#7e2d3a; --white:#f4ecd8; --rubric:#a8322a;
+  min-height:100vh; background:#171310; display:flex; justify-content:center;
+  align-items:flex-start; padding:24px 12px; overflow-x:hidden;
+}
+.leaf {
+  position:relative; flex:0 0 auto; width:760px; height:1000px;
+  background-color:#e9dfc4;
+  background-image:
+    radial-gradient(130% 120% at 50% 50%,transparent 46%,rgba(74,58,30,.34)),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27620%27%20height%3D%27620%27%3E%3Cfilter%20id%3D%27c%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.012%200.016%27%20numOctaves%3D%273%27%20seed%3D%2711%27%20stitchTiles%3D%27stitch%27%20result%3D%27n%27%2F%3E%3CfeDiffuseLighting%20in%3D%27n%27%20surfaceScale%3D%272%27%20diffuseConstant%3D%271.1%27%20lighting-color%3D%27%23ffffff%27%20result%3D%27l%27%3E%3CfeDistantLight%20azimuth%3D%27235%27%20elevation%3D%2752%27%2F%3E%3C%2FfeDiffuseLighting%3E%3CfeColorMatrix%20in%3D%27l%27%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.4%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23c%29%27%2F%3E%3C%2Fsvg%3E"),
+    url("../assets/vellum.jpg");
+  background-size:cover,620px,cover;
+  background-repeat:no-repeat,repeat,no-repeat;
+  background-blend-mode:multiply,soft-light,multiply;
+  box-shadow:0 30px 80px -30px rgba(0,0,0,.8);
+}
+.frame { position:absolute; inset:0; background:url("../assets/border.svg") center/100% 100% no-repeat; pointer-events:none; filter:url(#al-rough) saturate(.94); }
+/* real vellum sitting OVER the paint so pigment reads as in the skin */
+.veil { position:absolute; inset:0; pointer-events:none; background:url("../assets/vellum.jpg") center/cover; mix-blend-mode:multiply; opacity:.32; }
+/* global softening + warmth = a photo of a page */
+.soft { position:absolute; inset:0; pointer-events:none; backdrop-filter:blur(.5px) saturate(.9) contrast(.97) sepia(.07); }
+.goldbar { position:absolute; left:58px; top:120px; bottom:120px; width:9px;
+  background:linear-gradient(90deg,#6f4f0d,#b0851f 18%,#f6ead0 46%,#e6c766 54%,#a07a1e 82%,#5f430b);
+  border:.5px solid #6f4f0d; }
+.content { position:absolute; left:96px; right:70px; top:120px; bottom:96px;
+  display:flex; flex-direction:column; align-items:flex-start; }
+.title { display:flex; align-items:flex-end; gap:10px; margin:0; }
+.mark { width:112px; height:112px; display:block; filter:url(#al-roughv) drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+.mark svg { display:block; }
+.do { font-family:'UnifrakturCook',serif; font-weight:700; font-size:92px; line-height:.8; color:var(--ink); }
+.pron { margin:16px 0 0; font-family:'Fraunces Text',serif; font-style:italic; font-size:16px; letter-spacing:.05em; color:var(--rubric); }
+.divider { align-self:stretch; display:flex; align-items:center; gap:12px; margin:20px 0 0; }
+.diamond { width:7px; height:7px; background:var(--gold); transform:rotate(45deg); }
+.dline { flex:1; height:1px; background:linear-gradient(90deg,#b0851fdd,transparent 92%); }
+.tagline { margin:20px 0 0; font-family:'Fraunces Text',serif; font-size:21px; line-height:1.4; color:var(--ink); max-width:30ch; }
+.cta { margin-top:26px; display:inline-flex; align-items:center; gap:10px; min-height:48px; padding:0 24px; border-radius:3px;
+  border:1px solid var(--gold); background:var(--blue); color:var(--white); font-family:'Fraunces Text',serif; font-size:16px; text-decoration:none; }
+.g { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%;
+  background:linear-gradient(160deg,var(--gold-hi),var(--gold)); color:var(--blue); font-family:'Fraunces',serif; font-weight:700; font-size:13px; }
+.framing { margin:14px 0 0; font-family:'Fraunces Text',serif; font-style:italic; font-size:14px; color:var(--rose-deep); }
+.denied { margin-top:18px; padding:9px 14px; background:#e4d7b7; border:1px solid var(--rubric);
+  display:flex; align-items:center; gap:12px; font-family:'Fraunces Text',serif; font-size:14px; color:var(--ink); }
+.deniedClose { background:transparent; border:none; color:var(--rose-deep); font-size:15px; }
+.tiles { margin:30px 0 0; padding:0; list-style:none; align-self:stretch; display:flex; flex-direction:column; }
+.tile { display:flex; align-items:baseline; gap:10px; padding:13px 0; border-top:1px solid rgba(44,34,22,.18); }
+.tile:first-child { border-top:none; }
+.versal { flex:0 0 auto; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center;
+  background:var(--blue); color:var(--gold-hi); font-family:'UnifrakturCook',serif; font-weight:700; font-size:15px; border:1px solid var(--gold); }
+.tl { font-family:'Fraunces Text',serif; font-variant:small-caps; letter-spacing:.06em; font-size:15px; color:var(--ink); }
+.tb { font-family:'Fraunces Text',serif; font-size:15px; color:var(--ink); }
+.colophon { position:absolute; left:0; right:0; bottom:34px; text-align:center; font-family:'Fraunces Text',serif;
+  font-style:italic; font-size:13px; letter-spacing:.03em; font-variant-numeric:oldstyle-nums; color:var(--rose-deep); }
+
+/* Scale the whole leaf to fit narrow screens; negative margin reclaims the
+   space the CSS transform doesn't. */
+@media (max-width:812px) {
+  .leaf { transform:scale(calc((100vw - 24px) / 760)); transform-origin:top center;
+    margin-bottom:calc(((100vw - 24px) / 760) * 1000px - 1000px); }
+}
