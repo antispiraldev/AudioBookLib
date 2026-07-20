@@ -35,6 +35,8 @@ celery.conf.update(
         "app.tasks.ingest_book": {"queue": "ingest"},
         "app.tasks.synthesize_book": {"queue": "synth"},
         "app.tasks.synthesize_segment": {"queue": "synth"},
+        "app.tasks.synthesize_narration": {"queue": "synth"},
+        "app.tasks.synthesize_segment_audio": {"queue": "synth"},
         "app.tasks.finalize_book": {"queue": "synth"},
     },
     task_default_queue="synth",

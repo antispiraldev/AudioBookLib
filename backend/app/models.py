@@ -84,8 +84,35 @@ class Segment(Base):
     text = Column(Text, nullable=False)
     # set on the first segment of each detected chapter; None elsewhere
     chapter_title = Column(String, nullable=True)
+    # Primary narration (the book's chosen narrator preset). Alternate narrator
+    # renditions live in `audios` (SegmentAudio) so listeners can toggle voices.
     audio_path = Column(String, nullable=True)
     status = Column(String, default="pending")  # pending | processing | ready | error
     duration = Column(Float, nullable=True)
 
     book = relationship("Book", back_populates="segments")
+    audios = relationship(
+        "SegmentAudio",
+        back_populates="segment",
+        cascade="all, delete-orphan",
+    )
+
+
+class SegmentAudio(Base):
+    """An additional narrator rendition of a segment, beyond the primary one on
+    the Segment row. One row per (segment, narrator preset); the listener picks
+    which narration to hear and the audio router serves the matching take."""
+
+    __tablename__ = "segment_audio"
+
+    id = Column(Integer, primary_key=True, index=True)
+    segment_id = Column(
+        Integer, ForeignKey("segments.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # narrator preset key — see NARRATORS in app/services/tts.py
+    narrator = Column(String, nullable=False, index=True)
+    audio_path = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="pending")  # pending|processing|ready|error
+    duration = Column(Float, nullable=True)
+
+    segment = relationship("Segment", back_populates="audios")

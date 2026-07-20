@@ -36,6 +36,18 @@ class SegmentUpdate(BaseModel):
     text: str
 
 
+class NarrationOut(BaseModel):
+    """One selectable narration for a book — the primary narrator plus any
+    alternate voices that have been (or are being) rendered."""
+    narrator: str            # preset key
+    label: str               # human label, e.g. "Older woman"
+    voice: str               # underlying TTS voice
+    primary: bool            # the book's main narration (audio on the segments)
+    ready: bool              # every segment rendered — safe to play end to end
+    segments_ready: int
+    segments_total: int
+
+
 class BookOut(BaseModel):
     id: int
     title: str
@@ -51,6 +63,7 @@ class BookOut(BaseModel):
     tts_instructions: Optional[str] = None
     created_at: datetime
     segments: List[SegmentOut] = []
+    narrations: List[NarrationOut] = []
 
     model_config = {"from_attributes": True}
 

@@ -191,3 +191,60 @@
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
 }
+
+/* ---- Alternate narrations (Edit modal) ---- */
+.narrList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.narrRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.narrName {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.narrStatus {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.narrStatus[data-ready="true"] {
+  color: var(--accent);
+}
+.narrAction {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 999px;
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.narrAction:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+.narrAction:disabled {
+  opacity: 0.5;
+}
+.narrHint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}

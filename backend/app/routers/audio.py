@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Segment
+from ..models import Segment, SegmentAudio
 from ..services import storage
 
 router = APIRouter()
@@ -12,18 +12,46 @@ router = APIRouter()
 CHUNK = 1024 * 64  # 64 KB
 
 
+def _resolve_path(db: Session, seg: Segment, narrator: str | None) -> str | None:
+    """Pick which rendered take to serve. A `narrator` naming an alternate
+    voice with a ready take serves that; anything else (omitted, the primary
+    narrator, or a take not yet rendered) falls back to the segment's primary
+    audio."""
+    if narrator:
+        sa = (
+            db.query(SegmentAudio)
+            .filter(
+                SegmentAudio.segment_id == seg.id,
+                SegmentAudio.narrator == narrator,
+                SegmentAudio.status == "ready",
+            )
+            .first()
+        )
+        if sa and sa.audio_path:
+            return sa.audio_path
+    return seg.audio_path
+
+
 @router.get("/{segment_id}")
-def stream_audio(segment_id: int, request: Request, db: Session = Depends(get_db)):
+def stream_audio(
+    segment_id: int,
+    request: Request,
+    narrator: str | None = None,
+    db: Session = Depends(get_db),
+):
     seg = db.get(Segment, segment_id)
-    if not seg or not seg.audio_path:
+    if not seg:
+        raise HTTPException(404, "Audio not ready")
+    audio_path = _resolve_path(db, seg, narrator)
+    if not audio_path:
         raise HTTPException(404, "Audio not ready")
 
     if storage.is_enabled():
-        url = storage.presigned_url(seg.audio_path, expiry=3600)
+        url = storage.presigned_url(audio_path, expiry=3600)
         return RedirectResponse(url, status_code=302)
 
     # Local fallback — range-request-aware streaming
-    path = seg.audio_path
+    path = audio_path
     file_size = os.path.getsize(path)
     range_header = request.headers.get("range")
 
