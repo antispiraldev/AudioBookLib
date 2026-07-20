@@ -12,9 +12,8 @@ All 6 roadmap PRs merged, deployed, and verified live at `#/admin` as of
 2026-07-18 (see `PIPELINE.md` → Observability for what exists). One follow-up
 the deploy surfaced:
 
-- [ ] The worker droplet has **no swap configured** (`swap_total: 0` in
-      `/api/admin/resources`) — memory is its only OOM cushion. Consider
-      adding swap there like the web droplet has.
+- [x] The worker droplet had **no swap configured** — fixed 2026-07-19: 2 GB
+      swap file added (fstab-persisted), visible in `/api/admin/resources`.
 
 ## TTS / narration quality
 
@@ -32,15 +31,12 @@ was fixed as a prompt problem, not a provider one, and voice is now selectable.
 
 ## Pipeline / content
 
-- [x] Retry the seed-batch `error` books — done 2026-07-19: books 16/17/19
-      synthesized clean on retry (old errors were transient). Book 18
-      (popular_delusions) was NOT transient: per-character PDF extraction had
-      letter-spaced its text ("I n t e r…"), blowing the TTS 2000-token limit.
-      Reprocessed with the current extractor.
-- [ ] Book 18 lands back in `review` after its reprocess — **eyeball the text
-      for the letter-spacing pathology before approving**. If it's still
-      garbage, the PDF needs OCR or a replacement copy.
-- [ ] Books 22, 26, 27 sit in `review` awaiting text check + approve.
+- [x] Seed-batch retries all verified complete 2026-07-20 (books 16/17/19).
+      Book 18 (popular_delusions) was unfixable — letter-spaced garbage text
+      survived reprocess — and was deleted outright (user call, 2026-07-20).
+- [ ] Book 22 (As We May Think) still sits in `review` awaiting text check.
+- [ ] Part II batch (books 28–47, seeded 2026-07-20 from clean Gutenberg
+      texts): user reviewing/approving; hide any with transcription issues.
 
 ## Worker throughput
 
@@ -49,8 +45,9 @@ Celery queues so synthesis scales without touching the ingest OOM cap —
 `worker-ingest` (`-Q ingest --concurrency=2`) + `worker-synth`
 (`-Q synth,celery --concurrency=6`, measured ~3x throughput, ~755MB RSS).
 
-- [ ] Synth concurrency could go higher (RAM headroom exists) — raise only
-      while watching worker RAM and OpenAI 429s.
+- [x] Synth concurrency raised 6 → 8 (2026-07-20) when the approval backlog
+      hit ~2.5k queued segments. Watch worker RAM and OpenAI 429s; revert if
+      429s appear.
 
 ## Infra
 
