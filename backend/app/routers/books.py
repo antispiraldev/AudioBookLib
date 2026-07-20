@@ -45,7 +45,12 @@ def list_narrators():
     return {
         "default": tts.DEFAULT_NARRATOR,
         "presets": [
-            {"key": key, "label": p["label"], "voice": p["voice"]}
+            {
+                "key": key,
+                "label": p["label"],
+                "voice": p["voice"],
+                "provider": p.get("provider", "openai"),
+            }
             for key, p in tts.NARRATORS.items()
         ],
     }

@@ -29,6 +29,26 @@ was fixed as a prompt problem, not a provider one, and voice is now selectable.
 - [x] Offer voice/prompt options in the UI — admin narrator dropdown (Edit modal),
       `older_man`/onyx and `older_woman`/shimmer, fed by `GET /books/narrators`
 
+### Premium / multi-provider (in progress — the "highest quality, cost is fine" option)
+
+`tts.synthesize_preset()` now dispatches by provider (openai / elevenlabs / gemini).
+Two premium ElevenLabs narrator presets (`premium_man`/`premium_woman`, multilingual_v2)
+are wired end to end and appear in the admin dropdown. `tts_ab.py --round4` blind-tests
+the OpenAI default vs premium ElevenLabs + Gemini voices.
+
+- [ ] Run round 4 (`python scripts/tts_ab.py --round4`) and pick the premium
+      voice(s); the harness presets are a starting point, not a decision.
+- [ ] Confirm the premium `voice_id`s against the account with
+      `python scripts/tts_ab.py --el-list-voices` before trusting a win — the ids in
+      `NARRATORS`/`PROVIDER_PRESETS` are documented defaults, not verified per-account.
+- [ ] Set `ELEVENLABS_API_KEY` (and `GEMINI_API_KEY` for the A/B harness) in `.env`
+      on the **worker** droplet before selecting a premium narrator in prod.
+- [ ] **ElevenLabs caps *concurrent* requests per plan (often 5–15).** Synth runs at
+      `SYNTH_CONCURRENCY` 16 — a premium book will 429. Gate premium synthesis to a
+      lower concurrency (own queue) or a Scale-tier plan before shipping it widely.
+- [ ] Gemini is A/B-only for now — it returns PCM, so wiring it into production would
+      need a PCM→MP3 transcode step the pipeline doesn't have.
+
 ## Pipeline / content
 
 - [x] Seed-batch retries all verified complete 2026-07-20 (books 16/17/19).

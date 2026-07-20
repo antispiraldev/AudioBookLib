@@ -21,7 +21,7 @@ flowchart TD
         Review -->|"approve → Celery group"| Synth
 
         subgraph Parallel ["Parallel segment tasks (up to synth concurrency)"]
-            Synth["synthesize_segment × N\n─────────────\nOpenAI gpt-4o-mini-tts\ntts.resolve(narrator, instructions)\n→ voice + prompt from narrator preset\n(default older_man/onyx)\nfree-text instructions override prompt\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
+            Synth["synthesize_segment × N\n─────────────\ntts.resolve(narrator, instructions) → preset\ntts.synthesize_preset() dispatches by provider\n• openai gpt-4o-mini-tts (default older_man/onyx;\n  free-text instructions override prompt)\n• elevenlabs multilingual_v2 (premium presets;\n  needs ELEVENLABS_API_KEY, native MP3)\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
         end
 
         Synth -->|"chord callback"| Finalize

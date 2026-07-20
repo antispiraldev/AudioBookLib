@@ -7,9 +7,16 @@ TTS service. Reads OPENAI_API_KEY from the environment (or ../.env).
     cd backend && python scripts/tts_ab.py --voices onyx,marin --presets current,character
     open scripts/ab_out/index.html
 
-Clips land in scripts/ab_out/ as <voice>__<preset>.mp3 plus an index.html that
-plays them blind (labels hidden until you click Reveal). Cost is a few cents per
-full grid at gpt-4o-mini-tts rates.
+Round 4 pits the OpenAI production default against premium ElevenLabs and Gemini
+presets (see PROVIDER_PRESETS). It needs ELEVENLABS_API_KEY and GEMINI_API_KEY in
+the environment (or ../.env), and costs real money — a few cents per clip, not per
+grid — so it is opt-in:
+
+    cd backend && python scripts/tts_ab.py --round4
+    cd backend && python scripts/tts_ab.py --el-list-voices   # real voice_ids for your account
+
+Clips land in scripts/ab_out*/ as <name>.mp3 (or .wav for Gemini, which returns
+PCM) plus an index.html that plays them blind (labels hidden until Reveal).
 """
 
 import argparse
@@ -22,7 +29,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.services.tts import DEFAULT_INSTRUCTIONS, synthesize  # noqa: E402
+from app.services.tts import (  # noqa: E402
+    DEFAULT_INSTRUCTIONS,
+    NARRATORS,
+    synthesize_preset,
+)
 
 OUT_DIR = Path(__file__).resolve().parent / "ab_out"
 
@@ -207,30 +218,145 @@ ROUND3_PRESETS = [
     "prosody_valence_blunt",
 ]
 
+# --- Round 4: cross-provider premium grid ----------------------------------
+# The first three rounds tuned OpenAI voice x prompt. Round 4 asks a different
+# question: is a premium provider worth it for select books, cost aside? Each
+# entry is a self-contained preset (same schema app/services/tts.py consumes), so
+# whatever wins can be pasted straight into NARRATORS. The OpenAI production default
+# rides along as the control.
+#
+# ElevenLabs steers by voice + settings, not by a natural-language prompt: the
+# "pre chosen parameters" are the model_id and voice_settings below (stability trades
+# consistency vs expressiveness; multilingual_v2 = the reliable long-form pick, v3 =
+# more expressive but less deterministic across a book). Gemini steers by a prompt
+# prefix like OpenAI and returns PCM, so its clips are .wav.
+#
+# Voice ids/names are a documented starting point — confirm ElevenLabs ids for your
+# account with `--el-list-voices` before trusting a win.
+_EL_AUDIOBOOK = {
+    "stability": 0.5,
+    "similarity_boost": 0.8,
+    "style": 0.0,
+    "use_speaker_boost": True,
+    "speed": 1.0,
+}
+_GEMINI_STYLE = (
+    "Read the following as a warm, unhurried older audiobook narrator, close to the "
+    "microphone, letting the stress follow the meaning of each sentence and the final "
+    "words linger"
+)
+_GEMINI_MODEL = "gemini-2.5-pro-preview-tts"
 
-def render(voice: str, preset: str, text: str, take: int = 1) -> tuple[str, str, str | None]:
-    """Synthesize one cell of the grid. Returns (voice, preset, error)."""
+PROVIDER_PRESETS: dict[str, dict] = {
+    # Control: today's production narrator, so the blind grid always contains the
+    # bar the premium options have to clear.
+    "openai_default": {"label": "OpenAI onyx (production default)", **NARRATORS["older_man"]},
+    # --- ElevenLabs, multilingual_v2 (long-form workhorse) ---
+    "el_george_v2": {
+        "label": "ElevenLabs George / multilingual_v2",
+        "provider": "elevenlabs",
+        "voice_id": "JBFqnCBsd6RMkjVDRZzb",
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": _EL_AUDIOBOOK,
+    },
+    "el_charlotte_v2": {
+        "label": "ElevenLabs Charlotte / multilingual_v2",
+        "provider": "elevenlabs",
+        "voice_id": "XB0fDUnXU5powFXDhCwa",
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": _EL_AUDIOBOOK,
+    },
+    "el_adam_v2": {
+        "label": "ElevenLabs Adam (deep) / multilingual_v2",
+        "provider": "elevenlabs",
+        "voice_id": "pNInz6obpgDQGcFmaJgB",
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": _EL_AUDIOBOOK,
+    },
+    # --- ElevenLabs v3 (expressive; test consistency vs the v2 take) ---
+    "el_george_v3": {
+        "label": "ElevenLabs George / v3 (expressive)",
+        "provider": "elevenlabs",
+        "voice_id": "JBFqnCBsd6RMkjVDRZzb",
+        "model_id": "eleven_v3",
+        "voice_settings": _EL_AUDIOBOOK,
+    },
+    # --- Gemini 2.5 Pro (prompt-steered; returns .wav) ---
+    "gem_charon": {
+        "label": "Gemini Charon / 2.5-pro",
+        "provider": "gemini",
+        "voice_name": "Charon",
+        "model": _GEMINI_MODEL,
+        "instructions": _GEMINI_STYLE,
+    },
+    "gem_enceladus": {
+        "label": "Gemini Enceladus / 2.5-pro",
+        "provider": "gemini",
+        "voice_name": "Enceladus",
+        "model": _GEMINI_MODEL,
+        "instructions": _GEMINI_STYLE,
+    },
+    "gem_sulafat": {
+        "label": "Gemini Sulafat / 2.5-pro",
+        "provider": "gemini",
+        "voice_name": "Sulafat",
+        "model": _GEMINI_MODEL,
+        "instructions": _GEMINI_STYLE,
+    },
+    "gem_kore": {
+        "label": "Gemini Kore / 2.5-pro",
+        "provider": "gemini",
+        "voice_name": "Kore",
+        "model": _GEMINI_MODEL,
+        "instructions": _GEMINI_STYLE,
+    },
+}
+
+
+def _openai_spec(voice: str, preset: str) -> tuple[str, str, dict]:
+    """Build a (name, label, preset) spec for one cell of the OpenAI voice x prompt grid."""
+    return (
+        f"{voice}__{preset}",
+        f"{voice} / {preset}",
+        {"provider": "openai", "voice": voice, "instructions": PRESETS[preset]},
+    )
+
+
+def render(name: str, label: str, preset: dict, text: str, take: int = 1) -> tuple:
+    """Synthesize one clip. Returns (name, label, take, filename, error)."""
+    ext = "wav" if preset.get("provider") == "gemini" else "mp3"
     suffix = "" if take == 1 else f"__take{take}"
-    path = OUT_DIR / f"{voice}__{preset}{suffix}.mp3"
+    filename = f"{name}{suffix}.{ext}"
     try:
-        # tts.synthesize() hardcodes VOICE, so patch it for the duration of the
-        # call. Fine here because this script is single-purpose and the pool below
-        # is the only caller — do not copy this pattern into the pipeline.
-        import app.services.tts as tts_mod
+        synthesize_preset(text, str(OUT_DIR / filename), preset)
+    except Exception as exc:  # noqa: BLE001 - report per-clip, keep the grid going
+        return name, label, take, None, str(exc)
+    return name, label, take, filename, None
 
-        original = tts_mod.VOICE
-        tts_mod.VOICE = voice
-        try:
-            synthesize(text, str(path), instructions=PRESETS[preset])
-        finally:
-            tts_mod.VOICE = original
-    except Exception as exc:  # noqa: BLE001 - report per-cell, keep the grid going
-        return voice, preset, str(exc)
-    return voice, preset, None
+
+def list_elevenlabs_voices() -> int:
+    """Print the account's real ElevenLabs voice ids so PROVIDER_PRESETS can be trusted."""
+    import urllib.request
+
+    key = os.environ.get("ELEVENLABS_API_KEY")
+    if not key:
+        print("ELEVENLABS_API_KEY not set and not found in .env", file=sys.stderr)
+        return 1
+    req = urllib.request.Request(
+        "https://api.elevenlabs.io/v1/voices", headers={"xi-api-key": key}
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        voices = json.loads(resp.read()).get("voices", [])
+    for v in voices:
+        print(f"{v.get('voice_id'):24}  {v.get('name')}  ({v.get('category')})")
+    print(f"\n{len(voices)} voices", file=sys.stderr)
+    return 0
 
 
 def load_env() -> None:
-    if os.environ.get("OPENAI_API_KEY"):
+    """Load API keys from ../.env / ../../.env for any provider not already in the env."""
+    wanted = ("OPENAI_API_KEY", "ELEVENLABS_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY")
+    if all(os.environ.get(k) for k in wanted):
         return
     for candidate in (
         Path(__file__).resolve().parent.parent / ".env",
@@ -240,21 +366,17 @@ def load_env() -> None:
             continue
         for line in candidate.read_text().splitlines():
             line = line.strip()
-            if line.startswith("OPENAI_API_KEY="):
-                os.environ["OPENAI_API_KEY"] = line.split("=", 1)[1].strip().strip("\"'")
-                return
+            key = line.split("=", 1)[0]
+            if key in wanted and "=" in line and not os.environ.get(key):
+                os.environ[key] = line.split("=", 1)[1].strip().strip("\"'")
 
 
-def write_index(cells: list[tuple[str, str, int]]) -> Path:
-    """Blind player: clips are shuffled and anonymized until you hit Reveal."""
-    items = [
-        {
-            "voice": v,
-            "preset": p if t == 1 else f"{p} (take {t})",
-            "file": f"{v}__{p}{'' if t == 1 else f'__take{t}'}.mp3",
-        }
-        for v, p, t in cells
-    ]
+def write_index(items: list[dict]) -> Path:
+    """Blind player: clips are shuffled and anonymized until you hit Reveal.
+
+    Each item is {"label": ..., "file": ...}.
+    """
+    items = list(items)
     random.shuffle(items)
     html = _INDEX_TEMPLATE.replace("__ITEMS__", json.dumps(items, indent=2)).replace(
         "__PASSAGE__", PASSAGE
@@ -281,7 +403,7 @@ _INDEX_TEMPLATE = """<!doctype html>
 </style>
 </head>
 <body>
-<h1>Voice &times; prompt A/B</h1>
+<h1>Aedo TTS A/B</h1>
 <blockquote>__PASSAGE__</blockquote>
 <button id="reveal">Reveal labels</button>
 <div id="rows"></div>
@@ -294,7 +416,7 @@ items.forEach((it, i) => {
   row.innerHTML =
     '<span class="tag">' + String.fromCharCode(65 + i) + '</span>' +
     '<audio controls preload="none" src="' + it.file + '"></audio>' +
-    '<span class="label" hidden>' + it.voice + ' / ' + it.preset + '</span>';
+    '<span class="label" hidden>' + it.label + '</span>';
   rows.appendChild(row);
 });
 document.getElementById("reveal").onclick = () => {
@@ -304,6 +426,13 @@ document.getElementById("reveal").onclick = () => {
 </body>
 </html>
 """
+
+
+_KEY_FOR_PROVIDER = {
+    "openai": ("OPENAI_API_KEY",),
+    "elevenlabs": ("ELEVENLABS_API_KEY",),
+    "gemini": ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+}
 
 
 def main() -> int:
@@ -323,61 +452,94 @@ def main() -> int:
         help="round-3 grid: onyx x the prosody presets, 2 takes each, into ab_out3/",
     )
     parser.add_argument(
+        "--round4",
+        action="store_true",
+        help="round-4 grid: OpenAI default vs premium ElevenLabs/Gemini presets, into ab_out4/",
+    )
+    parser.add_argument(
+        "--el-list-voices",
+        action="store_true",
+        help="print your ElevenLabs account voice ids and exit",
+    )
+    parser.add_argument(
         "--takes", type=int, default=1, help="renders per cell, to judge consistency"
     )
     args = parser.parse_args()
 
-    if args.round2:
-        args.voices = ",".join(ROUND2_VOICES)
-        args.presets = ",".join(ROUND2_PRESETS)
+    load_env()
+
+    if args.el_list_voices:
+        return list_elevenlabs_voices()
+
+    # Build the grid as a list of (name, label, preset) specs.
+    if args.round4:
         if args.out == "ab_out":
-            args.out = "ab_out2"
-    if args.round3:
-        args.voices = ",".join(ROUND3_VOICES)
-        args.presets = ",".join(ROUND3_PRESETS)
-        if args.takes == 1:
-            args.takes = 2
-        if args.out == "ab_out":
-            args.out = "ab_out3"
+            args.out = "ab_out4"
+        specs = [(name, p["label"], p) for name, p in PROVIDER_PRESETS.items()]
+    else:
+        if args.round2:
+            args.voices = ",".join(ROUND2_VOICES)
+            args.presets = ",".join(ROUND2_PRESETS)
+            if args.out == "ab_out":
+                args.out = "ab_out2"
+        if args.round3:
+            args.voices = ",".join(ROUND3_VOICES)
+            args.presets = ",".join(ROUND3_PRESETS)
+            if args.takes == 1:
+                args.takes = 2
+            if args.out == "ab_out":
+                args.out = "ab_out3"
+        voices = [v.strip() for v in args.voices.split(",") if v.strip()]
+        presets = [p.strip() for p in args.presets.split(",") if p.strip()]
+        unknown = [p for p in presets if p not in PRESETS]
+        if unknown:
+            print(f"unknown preset(s): {', '.join(unknown)}", file=sys.stderr)
+            return 1
+        specs = [_openai_spec(v, p) for v in voices for p in presets]
+
     globals()["OUT_DIR"] = Path(__file__).resolve().parent / args.out
 
-    load_env()
-    if not os.environ.get("OPENAI_API_KEY"):
-        print("OPENAI_API_KEY not set and not found in .env", file=sys.stderr)
-        return 1
-
-    voices = [v.strip() for v in args.voices.split(",") if v.strip()]
-    presets = [p.strip() for p in args.presets.split(",") if p.strip()]
-    unknown = [p for p in presets if p not in PRESETS]
-    if unknown:
-        print(f"unknown preset(s): {', '.join(unknown)}", file=sys.stderr)
-        return 1
+    # A provider whose key is missing would fail every one of its clips — warn once
+    # up front rather than per clip. OpenAI missing is fatal (it is always the control).
+    providers = {p.get("provider", "openai") for _, _, p in specs}
+    for provider in sorted(providers):
+        keys = _KEY_FOR_PROVIDER.get(provider, ())
+        if keys and not any(os.environ.get(k) for k in keys):
+            msg = f"{' / '.join(keys)} not set — {provider} clips will fail"
+            if provider == "openai":
+                print(msg, file=sys.stderr)
+                return 1
+            print(f"WARNING: {msg}", file=sys.stderr)
 
     text = Path(args.text_file).read_text().strip() if args.text_file else PASSAGE
     globals()["PASSAGE"] = text
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     cells = [
-        (v, p, t) for v in voices for p in presets for t in range(1, args.takes + 1)
+        (name, label, preset, take)
+        for (name, label, preset) in specs
+        for take in range(1, args.takes + 1)
     ]
     print(f"rendering {len(cells)} clips into {OUT_DIR}/ ...")
 
-    failed = set()
+    items = []
+    failures = 0
     with ThreadPoolExecutor(max_workers=4) as pool:
-        results = pool.map(lambda c: (c, render(c[0], c[1], text, c[2])), cells)
-        for cell, (voice, preset, err) in results:
+        results = pool.map(lambda c: render(c[0], c[1], c[2], text, c[3]), cells)
+        for name, label, take, filename, err in results:
+            tag = "" if take == 1 else f" take {take}"
             if err:
-                failed.add(cell)
-                print(f"  FAIL {voice}/{preset} take {cell[2]}: {err}")
+                failures += 1
+                print(f"  FAIL {name}{tag}: {err}")
             else:
-                print(f"  ok   {voice}/{preset} take {cell[2]}")
+                print(f"  ok   {name}{tag}")
+                items.append({"label": label + (f" (take {take})" if take > 1 else ""), "file": filename})
 
-    ok = [c for c in cells if c not in failed]
-    if ok:
-        print(f"\nopen {write_index(ok)}")
-    if failed:
-        print(f"{len(failed)} of {len(cells)} clips failed", file=sys.stderr)
-    return 1 if failed and not ok else 0
+    if items:
+        print(f"\nopen {write_index(items)}")
+    if failures:
+        print(f"{failures} of {len(cells)} clips failed", file=sys.stderr)
+    return 1 if failures and not items else 0
 
 
 if __name__ == "__main__":
