@@ -1,4 +1,14 @@
-from sqlalchemy import Boolean, Column, Integer, String, Text, Float, DateTime, ForeignKey
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Integer,
+    String,
+    Text,
+    Float,
+    DateTime,
+    ForeignKey,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -13,6 +23,13 @@ class User(Base):
     display_name = Column(String, nullable=True)
     # visitor browsing needs no account; roles: user | subscriber | admin
     role = Column(String, default="user", nullable=False)
+    # Grants access to the A/B tests section for non-admins. Admins always have
+    # access regardless of this flag; it exists so the admin can hand a specific
+    # signed-in person (e.g. a friend helping compare narration) the ability to
+    # see all current and future A/B tests without making them an admin.
+    ab_test_access = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -116,3 +133,77 @@ class SegmentAudio(Base):
     duration = Column(Float, nullable=True)
 
     segment = relationship("Segment", back_populates="audios")
+
+
+class ABTest(Base):
+    """A blind A/B listening comparison — two narration clips of the same
+    passage that a permitted listener can play and pick a preference between.
+    Used to compare TTS voices and prompt presets before committing to one.
+
+    Visibility is gated at the section level (admin OR User.ab_test_access), not
+    per-test, so granting someone access shows them every current and future
+    test. `published` lets the admin stage a test before exposing it."""
+
+    __tablename__ = "ab_tests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    published = Column(Boolean, nullable=False, default=True, server_default="true")
+    created_by_user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    options = relationship(
+        "ABTestOption",
+        back_populates="test",
+        cascade="all, delete-orphan",
+        order_by="ABTestOption.order",
+    )
+    votes = relationship(
+        "ABTestVote", back_populates="test", cascade="all, delete-orphan"
+    )
+
+
+class ABTestOption(Base):
+    """One side of an A/B test. `key` is the stable identifier a vote refers to
+    ("A"/"B"); `label` is the human description shown only after voting / to the
+    admin (e.g. "onyx", "alloy, no instructions"). `audio_key` is an R2 object
+    key or a local storage path, resolved like book audio."""
+
+    __tablename__ = "ab_test_options"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ab_test_id = Column(
+        Integer, ForeignKey("ab_tests.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    key = Column(String, nullable=False)  # "A" | "B"
+    label = Column(String, nullable=False)
+    audio_key = Column(String, nullable=True)
+    order = Column(Integer, nullable=False, default=0)
+
+    test = relationship("ABTest", back_populates="options")
+
+
+class ABTestVote(Base):
+    """A single listener's preference on a test. One row per (test, user) — a
+    re-vote updates the existing row. `choice` is an option key ("A"/"B") or
+    "no_diff" when the listener heard no meaningful difference."""
+
+    __tablename__ = "ab_test_votes"
+    __table_args__ = (
+        UniqueConstraint("ab_test_id", "user_id", name="uq_ab_test_vote_user"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    ab_test_id = Column(
+        Integer, ForeignKey("ab_tests.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    choice = Column(String, nullable=False)  # "A" | "B" | "no_diff"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    test = relationship("ABTest", back_populates="votes")

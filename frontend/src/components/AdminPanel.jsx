@@ -11,6 +11,7 @@ import EventsPanel from "./EventsPanel";
 import WorkersPanel from "./WorkersPanel";
 import ResourcesPanel from "./ResourcesPanel";
 import LogsPanel from "./LogsPanel";
+import ABTestsAdmin from "./ABTestsAdmin";
 import s from "./AdminPanel.module.css";
 
 // Order + display labels for the status strip. Kept in sync with the backend's
@@ -111,6 +112,8 @@ export default function AdminPanel() {
       <EventsPanel events={events} />
 
       <LogsPanel />
+
+      <ABTestsAdmin />
     </div>
   );
 }
