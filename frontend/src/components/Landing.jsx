@@ -22,6 +22,19 @@ const TILES = [
 export default function Landing({ denied, onDismissDenied }) {
   return (
     <div className={s.wrap}>
+      {/* Displacement filters that warp the border/initial into organic,
+          hand-painted edges (referenced by CSS in Landing.module.css). */}
+      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
+        <filter id="al-rough">
+          <feTurbulence type="fractalNoise" baseFrequency="0.015 0.02" numOctaves="2" seed="3" result="n" />
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="6" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id="al-roughv">
+          <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="5" result="n" />
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="2.5" />
+        </filter>
+      </svg>
+
       <div className={s.leaf}>
         <div className={s.frame} aria-hidden="true" />
         <div className={s.goldbar} aria-hidden="true" />
@@ -69,6 +82,8 @@ export default function Landing({ denied, onDismissDenied }) {
         </div>
 
         <div className={s.colophon}>Aedo · {new Date().getFullYear()}</div>
+        <div className={s.veil} aria-hidden="true" />
+        <div className={s.soft} aria-hidden="true" />
       </div>
     </div>
   );

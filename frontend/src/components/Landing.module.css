@@ -12,21 +12,27 @@
 .leaf {
   position:relative; flex:0 0 auto; width:760px; height:1000px;
   background-color:#e9dfc4;
-  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27200%27%20height%3D%27200%27%3E%3Cfilter%20id%3D%27g%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.9%27%20numOctaves%3D%272%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.09%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23g%29%27%2F%3E%3C%2Fsvg%3E"),url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27340%27%20height%3D%27340%27%3E%3Cfilter%20id%3D%27f%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.16%27%20numOctaves%3D%272%27%20seed%3D%279%27%2F%3E%3CfeColorMatrix%20type%3D%27matrix%27%20values%3D%270%200%200%200%200.36%20%200%200%200%200%200.24%20%200%200%200%200%200.12%20%200%200%200%2012%20-7%27%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23f%29%27%20opacity%3D%270.5%27%2F%3E%3C%2Fsvg%3E"),url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27620%27%20height%3D%27620%27%3E%3Cfilter%20id%3D%27c%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.012%200.016%27%20numOctaves%3D%273%27%20seed%3D%2711%27%20stitchTiles%3D%27stitch%27%20result%3D%27n%27%2F%3E%3CfeDiffuseLighting%20in%3D%27n%27%20surfaceScale%3D%272%27%20diffuseConstant%3D%271.1%27%20lighting-color%3D%27%23ffffff%27%20result%3D%27l%27%3E%3CfeDistantLight%20azimuth%3D%27235%27%20elevation%3D%2752%27%2F%3E%3C%2FfeDiffuseLighting%3E%3CfeColorMatrix%20in%3D%27l%27%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.4%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23c%29%27%2F%3E%3C%2Fsvg%3E"),
-    radial-gradient(120% 90% at 24% 14%,rgba(255,250,235,.4),transparent 60%),
-    radial-gradient(130% 120% at 50% 50%,transparent 60%,rgba(74,58,30,.18));
-  background-size:200px,340px,620px,cover,cover;
-  background-blend-mode:multiply,multiply,soft-light,normal,normal;
+  background-image:
+    radial-gradient(130% 120% at 50% 50%,transparent 46%,rgba(74,58,30,.34)),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27620%27%20height%3D%27620%27%3E%3Cfilter%20id%3D%27c%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.012%200.016%27%20numOctaves%3D%273%27%20seed%3D%2711%27%20stitchTiles%3D%27stitch%27%20result%3D%27n%27%2F%3E%3CfeDiffuseLighting%20in%3D%27n%27%20surfaceScale%3D%272%27%20diffuseConstant%3D%271.1%27%20lighting-color%3D%27%23ffffff%27%20result%3D%27l%27%3E%3CfeDistantLight%20azimuth%3D%27235%27%20elevation%3D%2752%27%2F%3E%3C%2FfeDiffuseLighting%3E%3CfeColorMatrix%20in%3D%27l%27%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27linear%27%20slope%3D%270.4%27%2F%3E%3C%2FfeComponentTransfer%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23c%29%27%2F%3E%3C%2Fsvg%3E"),
+    url("../assets/vellum.jpg");
+  background-size:cover,620px,cover;
+  background-repeat:no-repeat,repeat,no-repeat;
+  background-blend-mode:multiply,soft-light,multiply;
   box-shadow:0 30px 80px -30px rgba(0,0,0,.8);
 }
-.frame { position:absolute; inset:0; background:url("../assets/border.svg") center/100% 100% no-repeat; pointer-events:none; }
+.frame { position:absolute; inset:0; background:url("../assets/border.svg") center/100% 100% no-repeat; pointer-events:none; filter:url(#al-rough) saturate(.94); }
+/* real vellum sitting OVER the paint so pigment reads as in the skin */
+.veil { position:absolute; inset:0; pointer-events:none; background:url("../assets/vellum.jpg") center/cover; mix-blend-mode:multiply; opacity:.32; }
+/* global softening + warmth = a photo of a page */
+.soft { position:absolute; inset:0; pointer-events:none; backdrop-filter:blur(.5px) saturate(.9) contrast(.97) sepia(.07); }
 .goldbar { position:absolute; left:58px; top:120px; bottom:120px; width:9px;
-  background:linear-gradient(90deg,var(--gold-deep),var(--gold-hi) 45%,var(--gold) 55%,var(--gold-deep));
-  border:.5px solid var(--gold-deep); }
+  background:linear-gradient(90deg,#6f4f0d,#b0851f 18%,#f6ead0 46%,#e6c766 54%,#a07a1e 82%,#5f430b);
+  border:.5px solid #6f4f0d; }
 .content { position:absolute; left:96px; right:70px; top:120px; bottom:96px;
   display:flex; flex-direction:column; align-items:flex-start; }
 .title { display:flex; align-items:flex-end; gap:10px; margin:0; }
-.mark { width:112px; height:112px; display:block; filter:drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+.mark { width:112px; height:112px; display:block; filter:url(#al-roughv) drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
 .mark svg { display:block; }
 .do { font-family:'UnifrakturCook',serif; font-weight:700; font-size:92px; line-height:.8; color:var(--ink); }
 .pron { margin:16px 0 0; font-family:'Fraunces Text',serif; font-style:italic; font-size:16px; letter-spacing:.05em; color:var(--rubric); }
