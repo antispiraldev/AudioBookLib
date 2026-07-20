@@ -1,10 +1,12 @@
 import logging
 import os
+import re
 import shutil
 from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -319,6 +321,65 @@ def delete_narration(book_id: int, narrator: str, db: Session = Depends(get_db))
         db.commit()
     db.refresh(book)
     return _with_narrations(book, db)
+
+
+# Archived audio takes (from past reprocesses) — the pre-tuning "original"
+# recordings live here. They were rendered against an older, coarser
+# segmentation, so they don't line up with the current segments and can't join
+# the listener voice toggle. This is an admin-only way to listen back to them.
+_TS_RE = re.compile(r"^\d{8}T\d{6}Z$")
+_PART_RE = re.compile(r"^\d{4}\.mp3$")
+
+
+def _format_ts(ts: str) -> str:
+    """20260717T102253Z → '2026-07-17 10:22 UTC' for a readable label."""
+    try:
+        dt = datetime.strptime(ts, "%Y%m%dT%H%M%SZ")
+        return dt.strftime("%Y-%m-%d %H:%M UTC")
+    except ValueError:
+        return ts
+
+
+@router.get("/{book_id}/archives", dependencies=[Depends(require_admin)])
+def list_archives(book_id: int, db: Session = Depends(get_db)):
+    """Archived audio takes for a book, grouped by the reprocess timestamp that
+    produced them (newest first). Each entry lists its part filenames so the
+    admin UI can play through the take."""
+    book = db.get(Book, book_id)
+    if not book:
+        raise HTTPException(404, "Book not found")
+
+    takes: dict[str, list[str]] = {}
+    for key in storage.list_prefix(f"audio-archive/{book_id}/"):
+        # key: audio-archive/{book_id}/{ts}/{part}
+        parts = key.split("/")
+        if len(parts) < 4:
+            continue
+        ts, name = parts[2], parts[3]
+        if _TS_RE.match(ts) and _PART_RE.match(name):
+            takes.setdefault(ts, []).append(name)
+
+    return [
+        {"ts": ts, "label": _format_ts(ts), "parts": sorted(names)}
+        for ts, names in sorted(takes.items(), reverse=True)
+    ]
+
+
+@router.get(
+    "/{book_id}/archives/{ts}/{part}",
+    dependencies=[Depends(require_admin)],
+)
+def stream_archive(book_id: int, ts: str, part: str, db: Session = Depends(get_db)):
+    """Stream one part of an archived take (admin only)."""
+    if not _TS_RE.match(ts) or not _PART_RE.match(part):
+        raise HTTPException(404, "Not found")
+    key = f"audio-archive/{book_id}/{ts}/{part}"
+    if storage.is_enabled():
+        return RedirectResponse(storage.presigned_url(key, expiry=3600), status_code=302)
+    path = os.path.join("storage", key)
+    if not os.path.exists(path):
+        raise HTTPException(404, "Not found")
+    return FileResponse(path, media_type="audio/mpeg")
 
 
 def _clear_generated(book_id: int, db: Session) -> None:

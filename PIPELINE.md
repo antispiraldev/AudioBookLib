@@ -62,6 +62,14 @@ Listeners toggle voices in the player; the choice is remembered per book
 (`GET /api/audio/{segment_id}?narrator={key}`), falling back to the primary
 take when a narrator is omitted or its take isn't rendered yet.
 
+**Archived (pre-tuning) takes.** Past reprocesses moved the previous audio to
+`audio-archive/{id}/{ts}/` instead of deleting it. Those originals were rendered
+against an older, coarser segmentation, so they can't join the per-segment
+toggle. They're listenable admin-side only, via `GET /books/{id}/archives`
+(list, grouped by reprocess timestamp) and
+`GET /books/{id}/archives/{ts}/{part}` (stream one part → signed R2 URL),
+surfaced in the Edit modal.
+
 ## Status flow
 
 ```

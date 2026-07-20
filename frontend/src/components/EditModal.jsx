@@ -6,6 +6,8 @@ import {
   fetchBook,
   generateNarration,
   deleteNarration,
+  fetchArchives,
+  archiveAudioUrl,
 } from "../api";
 import s from "./Modal.module.css";
 
@@ -28,6 +30,9 @@ export default function EditModal({ book, onClose, onSaved }) {
   const [narrators, setNarrators] = useState([]);
   const [narrations, setNarrations] = useState(book.narrations ?? []);
   const [busyVoice, setBusyVoice] = useState(null);
+  const [archives, setArchives] = useState([]);
+  const [activeArchive, setActiveArchive] = useState(null); // ts string
+  const [partIdx, setPartIdx] = useState(0);
   const [loading, setLoading] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState("");
@@ -36,7 +41,18 @@ export default function EditModal({ book, onClose, onSaved }) {
     fetchNarrators()
       .then((d) => setNarrators(d.presets))
       .catch(() => setNarrators([]));
-  }, []);
+    fetchArchives(book.id)
+      .then(setArchives)
+      .catch(() => setArchives([]));
+  }, [book.id]);
+
+  const activeParts =
+    archives.find((a) => a.ts === activeArchive)?.parts ?? [];
+
+  function playArchive(ts) {
+    setActiveArchive(ts);
+    setPartIdx(0);
+  }
 
   // A complete book can carry extra narrations. Only their existence enables
   // the listener toggle, and only a complete book has base audio to render from.
@@ -291,6 +307,65 @@ export default function EditModal({ book, onClose, onSaved }) {
               <p className={s.narrHint}>
                 Render the book in another voice so listeners can switch between
                 narrations in the player. Uses TTS credits.
+              </p>
+            </div>
+          )}
+
+          {archives.length > 0 && (
+            <div>
+              <label className={s.label}>Archived recordings (admin)</label>
+              <div className={s.narrList}>
+                {archives.map((a) => (
+                  <div key={a.ts} className={s.narrRow}>
+                    <span className={s.narrName}>
+                      Original · {a.label}
+                    </span>
+                    <span className={s.narrStatus}>{a.parts.length} parts</span>
+                    <button
+                      type="button"
+                      className={s.narrAction}
+                      data-active={activeArchive === a.ts}
+                      onClick={() => playArchive(a.ts)}
+                    >
+                      {activeArchive === a.ts ? "Playing" : "Play"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {activeArchive && activeParts.length > 0 && (
+                <div className={s.archivePlayer}>
+                  <div className={s.archivePartRow}>
+                    <span className={s.narrStatus}>
+                      Part {partIdx + 1} / {activeParts.length}
+                    </span>
+                    <select
+                      className={s.input}
+                      value={partIdx}
+                      onChange={(e) => setPartIdx(Number(e.target.value))}
+                    >
+                      {activeParts.map((p, i) => (
+                        <option key={p} value={i}>
+                          Part {i + 1}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <audio
+                    key={`${activeArchive}:${partIdx}`}
+                    className={s.archiveAudio}
+                    controls
+                    autoPlay
+                    src={archiveAudioUrl(book.id, activeArchive, activeParts[partIdx])}
+                    onEnded={() =>
+                      setPartIdx((i) => (i + 1 < activeParts.length ? i + 1 : i))
+                    }
+                  />
+                </div>
+              )}
+              <p className={s.narrHint}>
+                Pre-tuning takes kept from past reprocesses. They use an older
+                segmentation, so they can't join the listener voice toggle — this
+                is a way to listen back to them.
               </p>
             </div>
           )}

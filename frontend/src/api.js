@@ -107,6 +107,17 @@ export async function generateNarration(bookId, narrator) {
   return r.json();
 }
 
+// Archived (pre-tuning) audio takes for a book — admin only.
+export async function fetchArchives(bookId) {
+  const r = await fetch(`${BASE}/books/${bookId}/archives`);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
+export function archiveAudioUrl(bookId, ts, part) {
+  return `${BASE}/books/${bookId}/archives/${encodeURIComponent(ts)}/${encodeURIComponent(part)}`;
+}
+
 // Remove an alternate narration and its audio (admin).
 export async function deleteNarration(bookId, narrator) {
   const r = await fetch(`${BASE}/books/${bookId}/narrations/${encodeURIComponent(narrator)}`, {

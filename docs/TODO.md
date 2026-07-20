@@ -34,6 +34,9 @@ was fixed as a prompt problem, not a provider one, and voice is now selectable.
       has a voice switch that keeps position and remembers the choice per book.
       Admin generates extra voices from the Edit modal. Verify in prod after deploy;
       the alt-render progress isn't shown on book cards, only in the Edit modal.
+      Same branch also adds admin-only playback of archived pre-tuning takes
+      (`audio-archive/`) in the Edit modal — they use an older segmentation so
+      they can't join the listener toggle. Archived books: 1, 3, 22, 24, 25, 26, 27.
 
 ## Pipeline / content
 

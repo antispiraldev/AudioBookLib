@@ -248,3 +248,29 @@
   color: var(--text-muted);
   margin: 2px 0 0;
 }
+
+/* ---- Archived recordings player (Edit modal, admin) ---- */
+.narrAction[data-active="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.archivePlayer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.archivePartRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.archivePartRow .input {
+  flex: 1;
+}
+.archiveAudio {
+  width: 100%;
+}

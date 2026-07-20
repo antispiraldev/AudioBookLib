@@ -96,6 +96,26 @@ def presigned_url(key: str, expiry: int = 3600) -> str:
     )
 
 
+def list_prefix(prefix: str) -> list[str]:
+    """Every stored key under a prefix. Returns R2 object keys when R2 is on,
+    else local keys relative to the storage/ dir (same shape as an R2 key), so
+    callers can treat both the same."""
+    client = _get_client()
+    if client:
+        keys = []
+        paginator = client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=_bucket(), Prefix=prefix):
+            for obj in page.get("Contents", []):
+                keys.append(obj["Key"])
+        return keys
+    base = os.path.join("storage", prefix)
+    keys = []
+    for root, _, files in os.walk(base):
+        for name in files:
+            keys.append(os.path.relpath(os.path.join(root, name), "storage"))
+    return keys
+
+
 def delete_prefix(prefix: str) -> None:
     client = _get_client()
     if not client:
