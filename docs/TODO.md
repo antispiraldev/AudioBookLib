@@ -45,9 +45,10 @@ Celery queues so synthesis scales without touching the ingest OOM cap —
 `worker-ingest` (`-Q ingest --concurrency=2`) + `worker-synth`
 (`-Q synth,celery --concurrency=6`, measured ~3x throughput, ~755MB RSS).
 
-- [x] Synth concurrency raised 6 → 8 (2026-07-20) when the approval backlog
-      hit ~2.5k queued segments. Watch worker RAM and OpenAI 429s; revert if
-      429s appear.
+- [x] Synth concurrency raised 6 → 8 → 16 (2026-07-20) to drain the approval
+      backlog (~2.5k queued segments). Live rate-limit headers showed 10k RPM
+      account limit vs ~32 RPM used at 8 slots, so OpenAI has huge headroom.
+      Still watch worker RAM and 429s after changes.
 
 ## Infra
 
