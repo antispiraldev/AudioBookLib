@@ -31,7 +31,8 @@ x-worker-env: &worker-env
 services:
   worker-synth:
     build: ./backend
-    command: celery -A app.tasks worker --loglevel=info -n synth@%h -Q synth,celery --concurrency=16
+    # Tune via SYNTH_CONCURRENCY in .env (no rebuild needed: edit + `up -d`).
+    command: celery -A app.tasks worker --loglevel=info -n synth@%h -Q synth,celery --concurrency=${SYNTH_CONCURRENCY:-8}
     volumes:
       - ./storage:/app/storage
       - ./backend:/app
@@ -41,7 +42,9 @@ services:
 
   worker-ingest:
     build: ./backend
-    command: celery -A app.tasks worker --loglevel=info -n ingest@%h -Q ingest --concurrency=2
+    # Ingest is memory-heavy (PyMuPDF) — >2 has OOM'd this box. Raise only with
+    # RAM/swap to back it.
+    command: celery -A app.tasks worker --loglevel=info -n ingest@%h -Q ingest --concurrency=${INGEST_CONCURRENCY:-2}
     volumes:
       - ./storage:/app/storage
       - ./backend:/app
