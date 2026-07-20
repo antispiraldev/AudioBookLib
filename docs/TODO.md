@@ -49,6 +49,11 @@ Celery queues so synthesis scales without touching the ingest OOM cap —
       backlog (~2.5k queued segments). Live rate-limit headers showed 10k RPM
       account limit vs ~32 RPM used at 8 slots, so OpenAI has huge headroom.
       Still watch worker RAM and 429s after changes.
+- [x] Worker concurrency moved to `.env` (`SYNTH_CONCURRENCY`,
+      `INGEST_CONCURRENCY`) so tuning no longer needs a PR + rebuild.
+- [ ] Synth pool beyond ~16-20 slots: prefork costs ~110MB RAM per slot, so
+      switch worker-synth to `--pool=threads` first (audit task thread-safety;
+      OpenAI client is thread-safe, DB sessions are per-task).
 
 ## Infra
 
