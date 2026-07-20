@@ -3,6 +3,7 @@
 
 const PROGRESS_PREFIX = "aedo:progress:";
 const SPEED_KEY = "aedo:speed";
+const NARRATOR_PREFIX = "aedo:narrator:";
 
 // Progress record shape: { segIdx, t, fraction, updated }
 //  - segIdx:   chapter index the listener was on
@@ -44,6 +45,24 @@ export function loadSpeed() {
 export function saveSpeed(rate) {
   try {
     localStorage.setItem(SPEED_KEY, String(rate));
+  } catch {
+    // non-fatal
+  }
+}
+
+// Preferred narrator (voice) per book — remembers the listener's last choice.
+export function loadNarrator(bookId) {
+  try {
+    return localStorage.getItem(NARRATOR_PREFIX + bookId) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveNarrator(bookId, narrator) {
+  try {
+    if (narrator) localStorage.setItem(NARRATOR_PREFIX + bookId, narrator);
+    else localStorage.removeItem(NARRATOR_PREFIX + bookId);
   } catch {
     // non-fatal
   }

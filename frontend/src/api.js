@@ -24,6 +24,12 @@ export async function deleteBook(id) {
   if (!r.ok) throw new Error(await parseError(r));
 }
 
+export async function fetchBook(id) {
+  const r = await fetch(`${BASE}/books/${id}`);
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
 export async function updateBook(id, data) {
   const r = await fetch(`${BASE}/books/${id}`, {
     method: "PATCH",
@@ -85,8 +91,29 @@ export async function updateSegment(bookId, order, text) {
   return r.json();
 }
 
-export function audioUrl(segmentId) {
-  return `${BASE}/audio/${segmentId}`;
+export function audioUrl(segmentId, narrator) {
+  const q = narrator ? `?narrator=${encodeURIComponent(narrator)}` : "";
+  return `${BASE}/audio/${segmentId}${q}`;
+}
+
+// Start rendering an additional narrator's take of a book (admin).
+export async function generateNarration(bookId, narrator) {
+  const r = await fetch(`${BASE}/books/${bookId}/narrations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ narrator }),
+  });
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
+}
+
+// Remove an alternate narration and its audio (admin).
+export async function deleteNarration(bookId, narrator) {
+  const r = await fetch(`${BASE}/books/${bookId}/narrations/${encodeURIComponent(narrator)}`, {
+    method: "DELETE",
+  });
+  if (!r.ok) throw new Error(await parseError(r));
+  return r.json();
 }
 
 export async function fetchMe() {

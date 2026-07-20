@@ -74,6 +74,12 @@ def _get_client() -> OpenAI:
     return _client
 
 
+def preset(narrator: str | None) -> dict[str, str]:
+    """The narrator preset for a key, falling back to the default for an unknown
+    or missing key. Never raises, so callers can pass a stored value directly."""
+    return NARRATORS.get(narrator or DEFAULT_NARRATOR, NARRATORS[DEFAULT_NARRATOR])
+
+
 def resolve(narrator: str | None = None, instructions: str | None = None) -> tuple[str, str]:
     """Map a per-book narrator key + optional free-text override to (voice, instructions).
 

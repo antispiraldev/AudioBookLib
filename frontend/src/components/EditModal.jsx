@@ -1,6 +1,19 @@
-import { useEffect, useState } from "react";
-import { updateBook, suggestBook, fetchNarrators } from "../api";
+import { useEffect, useRef, useState } from "react";
+import {
+  updateBook,
+  suggestBook,
+  fetchNarrators,
+  fetchBook,
+  generateNarration,
+  deleteNarration,
+} from "../api";
 import s from "./Modal.module.css";
+
+function narrationLabel(n) {
+  if (n.ready) return "Ready";
+  if (n.segments_total > 0) return `Generating ${n.segments_ready}/${n.segments_total}`;
+  return "Generating…";
+}
 
 export default function EditModal({ book, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -13,6 +26,8 @@ export default function EditModal({ book, onClose, onSaved }) {
     tts_instructions: book.tts_instructions ?? "",
   });
   const [narrators, setNarrators] = useState([]);
+  const [narrations, setNarrations] = useState(book.narrations ?? []);
+  const [busyVoice, setBusyVoice] = useState(null);
   const [loading, setLoading] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState("");
@@ -22,6 +37,63 @@ export default function EditModal({ book, onClose, onSaved }) {
       .then((d) => setNarrators(d.presets))
       .catch(() => setNarrators([]));
   }, []);
+
+  // A complete book can carry extra narrations. Only their existence enables
+  // the listener toggle, and only a complete book has base audio to render from.
+  const canNarrate = book.status === "complete";
+  const primaryKey = narrations.find((n) => n.primary)?.narrator;
+  const existingKeys = new Set(narrations.map((n) => n.narrator));
+  const addable = narrators.filter(
+    (n) => n.key !== primaryKey && !existingKeys.has(n.key)
+  );
+  const generating = narrations.some((n) => !n.primary && !n.ready);
+
+  // While an alternate is still rendering, poll the book so its progress and
+  // eventual readiness show up — generation doesn't flip book.status, so the
+  // app-level poll won't cover this.
+  const onSavedRef = useRef(onSaved);
+  onSavedRef.current = onSaved;
+  useEffect(() => {
+    if (!generating) return;
+    const id = setInterval(async () => {
+      try {
+        const fresh = await fetchBook(book.id);
+        setNarrations(fresh.narrations ?? []);
+        onSavedRef.current?.(fresh);
+      } catch {
+        // transient — keep polling
+      }
+    }, 4000);
+    return () => clearInterval(id);
+  }, [generating, book.id]);
+
+  async function handleGenerate(key) {
+    setBusyVoice(key);
+    setError("");
+    try {
+      const updated = await generateNarration(book.id, key);
+      setNarrations(updated.narrations ?? []);
+      onSaved?.(updated);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyVoice(null);
+    }
+  }
+
+  async function handleRemoveNarration(key) {
+    setBusyVoice(key);
+    setError("");
+    try {
+      const updated = await deleteNarration(book.id, key);
+      setNarrations(updated.narrations ?? []);
+      onSaved?.(updated);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyVoice(null);
+    }
+  }
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -174,6 +246,54 @@ export default function EditModal({ book, onClose, onSaved }) {
               onChange={(e) => set("tts_instructions", e.target.value)}
             />
           </div>
+
+          {canNarrate && (
+            <div>
+              <label className={s.label}>Alternate narrations</label>
+              <div className={s.narrList}>
+                {narrations.map((n) => (
+                  <div key={n.narrator} className={s.narrRow}>
+                    <span className={s.narrName}>
+                      {n.label}
+                      {n.primary ? " · primary" : ""}
+                    </span>
+                    {!n.primary && (
+                      <span className={s.narrStatus} data-ready={n.ready}>
+                        {narrationLabel(n)}
+                      </span>
+                    )}
+                    {!n.primary && (
+                      <button
+                        type="button"
+                        className={s.narrAction}
+                        disabled={busyVoice === n.narrator}
+                        onClick={() => handleRemoveNarration(n.narrator)}
+                      >
+                        {busyVoice === n.narrator ? "…" : "Remove"}
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {addable.map((n) => (
+                  <div key={n.key} className={s.narrRow}>
+                    <span className={s.narrName}>{n.label}</span>
+                    <button
+                      type="button"
+                      className={s.narrAction}
+                      disabled={busyVoice === n.key}
+                      onClick={() => handleGenerate(n.key)}
+                    >
+                      {busyVoice === n.key ? "Starting…" : "Generate"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <p className={s.narrHint}>
+                Render the book in another voice so listeners can switch between
+                narrations in the player. Uses TTS credits.
+              </p>
+            </div>
+          )}
 
           {error && <p className={s.errorText}>{error}</p>}
 

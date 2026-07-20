@@ -14,8 +14,8 @@ Adds the A/B listening-test feature:
 from alembic import op
 import sqlalchemy as sa
 
-revision = "0009"
-down_revision = "0008"
+revision = "0010"
+down_revision = "0009"
 branch_labels = None
 depends_on = None
 
