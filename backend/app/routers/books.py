@@ -103,12 +103,38 @@ async def upload_book(
     return book
 
 
+def _is_partially_synthesized(book: Book) -> bool:
+    """True when some audio exists but not all — i.e. a narration change now
+    would splice two voices. Covers an in-flight synthesis and any book stopped
+    partway (e.g. errored mid-run with some ready segments)."""
+    if book.status == "synthesizing":
+        return True
+    ready = sum(1 for s in book.segments if s.status == "ready")
+    return 0 < ready < len(book.segments)
+
+
+# Fields that change what the TTS produces; locked while a book is partway
+# through synthesis so the audio can't end up half one voice, half another.
+_NARRATION_FIELDS = ("tts_narrator", "tts_instructions")
+
+
 @router.patch("/{book_id}", response_model=BookOut, dependencies=[Depends(require_admin)])
 def update_book(book_id: int, data: BookUpdate, db: Session = Depends(get_db)):
     book = db.get(Book, book_id)
     if not book:
         raise HTTPException(404, "Book not found")
-    for field, value in data.model_dump(exclude_none=True).items():
+    incoming = data.model_dump(exclude_none=True)
+    narration_change = any(
+        f in incoming and incoming[f] != getattr(book, f) for f in _NARRATION_FIELDS
+    )
+    if narration_change and _is_partially_synthesized(book):
+        raise HTTPException(
+            409,
+            "Can't change the narrator or instructions while this book is partway "
+            "through synthesis — it would splice two voices into one book. Let it "
+            "finish (or reset it), then change the voice and re-synthesize.",
+        )
+    for field, value in incoming.items():
         setattr(book, field, value)
     db.commit()
     db.refresh(book)
@@ -191,10 +217,42 @@ def retry_synthesize(book_id: int, db: Session = Depends(get_db)):
     return book
 
 
-def _clear_generated(book_id: int, db: Session) -> None:
-    """Drop a book's segments so ingest can rebuild cleanly, archiving the
-    existing audio rather than deleting it — resynthesis costs real money and
-    R2 storage is cheap, so a bad reprocess never destroys a paid-for take."""
+@router.post("/{book_id}/resynthesize", response_model=BookOut, dependencies=[Depends(require_admin)])
+def resynthesize_book(book_id: int, db: Session = Depends(get_db)):
+    """Re-voice a finished book: archive the current audio, then regenerate every
+    segment with the book's currently selected narrator. Keeps the segment text
+    (no re-ingest), unlike reprocess. The old take is archived, never deleted, so
+    a re-voice never destroys audio you paid for.
+
+    TODO (deferred): tag archives by render signature and restore a matching take
+    for free instead of re-synthesizing, so toggling back to a prior voice costs
+    nothing. See docs/TODO.md.
+    """
+    book = db.get(Book, book_id)
+    if not book:
+        raise HTTPException(404, "Book not found")
+    if book.status != "complete":
+        raise HTTPException(
+            409,
+            "Re-synthesize is for finished books. This one isn't complete yet — "
+            "use Synthesize to (re)generate, or Reprocess to rebuild from the PDF.",
+        )
+    _archive_audio(book_id)
+    for seg in book.segments:
+        seg.status = "pending"
+        seg.audio_path = None
+        seg.duration = None
+    book.status = "synthesizing"
+    db.commit()
+    synthesize_book.delay(book_id)
+    db.refresh(book)
+    return book
+
+
+def _archive_audio(book_id: int) -> None:
+    """Move a book's generated audio aside to audio-archive/ (server-side on R2,
+    a local move otherwise) rather than deleting it — resynthesis costs real
+    money and R2 storage is cheap, so a paid-for take is never destroyed."""
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     storage.archive_prefix(f"audio/{book_id}/", f"audio-archive/{book_id}/{ts}/")
     local_audio = os.path.join("storage", "audio", str(book_id))
@@ -202,6 +260,12 @@ def _clear_generated(book_id: int, db: Session) -> None:
         dst = os.path.join("storage", "audio-archive", str(book_id), ts)
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         shutil.move(local_audio, dst)
+
+
+def _clear_generated(book_id: int, db: Session) -> None:
+    """Drop a book's segments so ingest can rebuild cleanly, archiving the
+    existing audio first (see _archive_audio)."""
+    _archive_audio(book_id)
     db.query(Segment).filter(Segment.book_id == book_id).delete()
     db.commit()
 

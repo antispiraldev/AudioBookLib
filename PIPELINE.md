@@ -31,8 +31,9 @@ flowchart TD
     Finalize --> DB
 
     DB -->|"poll every 3s"| Frontend
-    Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nReview modal + Approve\nEdit modal (+ narrator voice\npreset & custom instructions)\n+ Suggest\nReprocess (re-run ingest,\n± replace PDF)"]
+    Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nReview modal + Approve\nEdit modal (+ narrator voice\npreset & custom instructions;\nlocked while partway synthesized)\n+ Suggest\nRe-synthesize (re-voice, complete only)\nReprocess (re-run ingest,\n± replace PDF)"]
     Frontend -->|"POST /books/{id}/reprocess\narchive audio → audio-archive/,\nclear segments, ± new PDF → R2"| Queue
+    Frontend -->|"POST /books/{id}/resynthesize\narchive audio → audio-archive/,\nsegments → pending (keep text),\nre-voice with current narrator"| Queue
     Frontend -->|"GET /api/audio/{id}\n→ 302 to signed R2 URL\n(1 hr expiry)"| R2
     R2["Cloudflare R2\n─────────────\nPrivate bucket\nSigned URLs\nNo egress fees"]
     R2 -->|"Audio stream\n(range requests)"| Player["Audio Player\n─────────────\nSegment pills\nChapter dropdown + jump\n±15s skip\nOverall progress"]

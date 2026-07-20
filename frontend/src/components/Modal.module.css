@@ -102,6 +102,12 @@
   font-size: 13px;
 }
 
+.hintText {
+  color: var(--text-muted, #888);
+  font-size: 13px;
+  margin-top: -4px;
+}
+
 .actions {
   display: flex;
   gap: 8px;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { deleteBook, retryBook, updateBook } from "../api";
+import { deleteBook, retryBook, updateBook, resynthesizeBook } from "../api";
 import { loadProgress } from "../lib/playback";
 import EditModal from "./EditModal";
 import ReviewModal from "./ReviewModal";
@@ -94,6 +94,22 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
       setRetryError(e.message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleResynthesize() {
+    setMenuOpen(false);
+    setRetryError("");
+    if (!confirm(
+      `Re-synthesize "${book.title}" with the currently selected voice?\n\n` +
+      "This regenerates all audio (costs money to synthesize). The current " +
+      "audio is archived, not deleted."
+    )) return;
+    try {
+      const updated = await resynthesizeBook(book.id);
+      onUpdated(updated);
+    } catch (e) {
+      setRetryError(e.message);
     }
   }
 
@@ -238,6 +254,16 @@ export default function BookCard({ book, isAdmin, isActive, playing, onPlay, onD
                         <span className={s.menuIcon}>✎</span>
                         Edit
                       </button>
+                      {book.status === "complete" && (
+                        <button
+                          className={s.menuItem}
+                          role="menuitem"
+                          onClick={handleResynthesize}
+                        >
+                          <span className={s.menuIcon}>♺</span>
+                          Re-synthesize
+                        </button>
+                      )}
                       <button
                         className={s.menuItem}
                         role="menuitem"
