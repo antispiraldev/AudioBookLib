@@ -126,6 +126,16 @@ def _get_client() -> OpenAI:
     return _client
 
 
+def preset(narrator: str | None) -> dict:
+    """The narrator preset for a key, falling back to the default for an unknown
+    or missing key. Never raises, so callers can pass a stored value directly.
+
+    This is the *shared* registry entry — read-only. Use `resolve()` when you
+    need a mutable copy with the provider defaulted and overrides applied.
+    """
+    return NARRATORS.get(narrator or DEFAULT_NARRATOR, NARRATORS[DEFAULT_NARRATOR])
+
+
 def resolve(narrator: str | None = None, instructions: str | None = None) -> dict:
     """Map a per-book narrator key + optional free-text override to a resolved preset.
 
@@ -134,11 +144,11 @@ def resolve(narrator: str | None = None, instructions: str | None = None) -> dic
     a natural-language prompt — currently ElevenLabs — ignore it). The returned dict
     is a copy safe to mutate and always carries a "provider".
     """
-    preset = dict(NARRATORS.get(narrator or DEFAULT_NARRATOR, NARRATORS[DEFAULT_NARRATOR]))
-    preset.setdefault("provider", "openai")
+    p = dict(preset(narrator))
+    p.setdefault("provider", "openai")
     if instructions:
-        preset["instructions"] = instructions
-    return preset
+        p["instructions"] = instructions
+    return p
 
 
 # --- Provider back ends ----------------------------------------------------

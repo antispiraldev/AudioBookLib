@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { audioUrl } from "../api";
-import { loadProgress, saveProgress, loadSpeed, saveSpeed } from "../lib/playback";
+import {
+  loadProgress,
+  saveProgress,
+  loadSpeed,
+  saveSpeed,
+  loadNarrator,
+  saveNarrator,
+} from "../lib/playback";
 import s from "./AudioPlayer.module.css";
 
 const SKIP = 15;
@@ -38,6 +45,22 @@ function initialResume(book) {
   return { idx: 0, t: 0 };
 }
 
+// Fully-rendered narrations a listener can pick between for this book.
+function playableNarrations(book) {
+  return (book.narrations || []).filter((n) => n.ready);
+}
+
+// Which narration to start on: the listener's remembered choice if still
+// available, else the primary narration, else whatever's ready (else none →
+// the audio route falls back to the primary take).
+function initialNarrator(book) {
+  const opts = playableNarrations(book);
+  const saved = loadNarrator(book.id);
+  if (saved && opts.some((o) => o.narrator === saved)) return saved;
+  const primary = opts.find((o) => o.primary);
+  return primary ? primary.narrator : opts[0]?.narrator ?? null;
+}
+
 /* ---- Inline icons (self-contained, no external assets) ---- */
 const ic = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "currentColor" };
 const Play = () => (<svg {...ic}><path d="M8 5v14l11-7z" /></svg>);
@@ -48,6 +71,7 @@ const ChevronUp = (props) => (<svg {...ic} {...props}><path d="M12 8l-6 6 1.4 1.
 const Close = () => (<svg {...ic}><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z" /></svg>);
 const List = () => (<svg {...ic} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>);
 const Moon = () => (<svg {...ic} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>);
+const Voice = () => (<svg {...ic} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>);
 // Circular arrow with the skip seconds baked into the SVG as <text>, so the
 // "15" stays centered on every browser. (A separate absolutely-positioned
 // label drifted off-centre on iOS Safari.) The arrow is mirrored for forward.
@@ -84,6 +108,8 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
   const [sleepEndsAt, setSleepEndsAt] = useState(0);
   const [sleepRemain, setSleepRemain] = useState(0);
   const [showSleep, setShowSleep] = useState(false);
+  const [narrator, setNarrator] = useState(() => initialNarrator(book));
+  const [showVoices, setShowVoices] = useState(false);
 
   // Seconds to seek to once the next chapter's metadata loads (for resume).
   const savedSeekRef = useRef(resumeRef.current.t);
@@ -92,6 +118,12 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
   const seg = readySegs[segIdx];
   const hasPrev = segIdx > 0;
   const hasNext = segIdx < readySegs.length - 1;
+
+  // Selectable voices (fully-rendered narrations). The toggle only appears when
+  // there's a real choice — i.e. an alternate narration finished rendering.
+  const voiceOptions = playableNarrations(book);
+  const hasVoiceChoice = voiceOptions.length > 1;
+  const currentVoice = voiceOptions.find((o) => o.narrator === narrator);
   const color = coverColor(book.id);
   const initial = (book.title || "?").trim().charAt(0).toUpperCase();
 
@@ -118,14 +150,18 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
     const r = initialResume(book);
     savedSeekRef.current = r.t;
     setSegIdx(r.idx);
+    setNarrator(initialNarrator(book));
+    setShowVoices(false);
     setPlaying(true);
   }, [book.id]);
 
-  // Load the current chapter's audio when the chapter changes.
+  // Load the current chapter's audio when the chapter — or the chosen voice —
+  // changes. Switching voice reloads the same chapter in a different narration;
+  // the position is preserved via savedSeekRef (set by pickVoice below).
   useEffect(() => {
     const el = audioRef.current;
     if (!seg || !el) return;
-    el.src = audioUrl(seg.id);
+    el.src = audioUrl(seg.id, narrator);
     el.playbackRate = rate;
     setCurrent(0);
     setDuration(0);
@@ -133,7 +169,12 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
     // seek first and avoid a blip of audio from 0:00.
     if (playing && savedSeekRef.current <= 0) el.play().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seg?.id]);
+  }, [seg?.id, narrator]);
+
+  // Remember the listener's voice choice per book.
+  useEffect(() => {
+    saveNarrator(book.id, narrator);
+  }, [book.id, narrator]);
 
   useEffect(() => {
     const el = audioRef.current;
@@ -290,6 +331,16 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
   const goNext = () => hasNext && setSegIdx((i) => i + 1);
   const pickChapter = (i) => { setSegIdx(i); setPlaying(true); setShowChapters(false); };
 
+  // Switch narration voice, keeping the current spot in the chapter — the load
+  // effect reloads this chapter in the new voice and onLoadedMetadata seeks back.
+  function pickVoice(key) {
+    setShowVoices(false);
+    if (key === narrator) return;
+    const el = audioRef.current;
+    savedSeekRef.current = el ? el.currentTime : 0;
+    setNarrator(key);
+  }
+
   // Latest handlers for the keyboard listener (see effect above).
   keyRef.current = { togglePlay, skipBack, skipForward, goPrev, goNext };
 
@@ -388,6 +439,21 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
     </button>
   );
 
+  // Short chip label — the presets read "Older man (default)"; drop the aside.
+  const voiceChipLabel = (currentVoice?.label || "").replace(/\s*\(.*\)$/, "");
+  const voiceBtn = () =>
+    hasVoiceChoice ? (
+      <button
+        className={s.chip}
+        data-active={showVoices}
+        onClick={() => setShowVoices((v) => !v)}
+        title="Narration voice"
+        aria-label="Narration voice"
+      >
+        <Voice />{voiceChipLabel && <span>{voiceChipLabel}</span>}
+      </button>
+    ) : null;
+
   return (
     <>
       <audio
@@ -420,6 +486,7 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
           {seek()}
           <div className={s.extras}>
             <button className={s.chip} onClick={cycleSpeed} title="Playback speed">{speedLabel}</button>
+            {voiceBtn()}
             {sleepBtn()}
             <button className={s.chip} data-active={showChapters} onClick={() => setShowChapters((v) => !v)} title="Chapters">
               <List /> Chapters
@@ -463,6 +530,27 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
         </>
       )}
 
+      {/* Narration voice menu */}
+      {showVoices && (
+        <>
+          <div className={s.menuBackdrop} onClick={() => setShowVoices(false)} />
+          <div className={s.sleepMenu} role="menu">
+            <div className={s.sleepMenuTitle}>Narration voice</div>
+            {voiceOptions.map((o) => (
+              <button
+                key={o.narrator}
+                className={s.sleepItem}
+                data-active={o.narrator === narrator}
+                role="menuitem"
+                onClick={() => pickVoice(o.narrator)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
       {/* Mobile full-screen Now Playing sheet */}
       {expanded && (
         <div className={s.sheet}>
@@ -489,6 +577,7 @@ export default function AudioPlayer({ book, playing, setPlaying, onClose }) {
           <div className={s.sheetFooter}>
             <div className={s.sheetFooterBtns}>
               <button className={s.chip} onClick={cycleSpeed}>{speedLabel}</button>
+              {voiceBtn()}
               {sleepBtn()}
             </div>
             <span className={s.sub}>{positionLabel}</span>

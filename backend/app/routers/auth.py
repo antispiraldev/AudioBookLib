@@ -52,6 +52,16 @@ def require_admin(user: User | None = Depends(get_current_user)) -> User:
     return user
 
 
+def require_ab_access(user: User | None = Depends(get_current_user)) -> User:
+    """Gate for the A/B tests section. Admins always pass; other signed-in users
+    need the explicit `ab_test_access` grant."""
+    if user is None:
+        raise HTTPException(401, "Sign in required")
+    if user.role != "admin" and not user.ab_test_access:
+        raise HTTPException(403, "No access to A/B tests")
+    return user
+
+
 @router.get("/login")
 async def login(request: Request):
     if not os.getenv("GOOGLE_CLIENT_ID"):

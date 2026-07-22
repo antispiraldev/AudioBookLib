@@ -26,6 +26,13 @@ flowchart TD
 
         Synth -->|"chord callback"| Finalize
         Finalize["finalize_book\n─────────────\nall ready → complete\nany error  → error"]
+
+        AltReq["POST /books/{id}/narrations\n(admin, complete book)"]
+        AltReq -->|"synthesize_narration.delay(id, narrator)"| Alt
+        subgraph AltParallel ["Alternate narration (extra voice)"]
+            Alt["synthesize_segment_audio × N\n─────────────\nrender each ready segment in\nANOTHER narrator preset →\nSegmentAudio(segment, narrator)\naudio/{id}/{narrator}/{order}.mp3\nbook.status untouched"]
+        end
+        Alt --> DB
     end
 
     Finalize --> DB
@@ -33,10 +40,27 @@ flowchart TD
     DB -->|"poll every 3s"| Frontend
     Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nReview modal + Approve\nEdit modal (+ narrator voice\npreset & custom instructions)\n+ Suggest\nReprocess (re-run ingest,\n± replace PDF)"]
     Frontend -->|"POST /books/{id}/reprocess\narchive audio → audio-archive/,\nclear segments, ± new PDF → R2"| Queue
-    Frontend -->|"GET /api/audio/{id}\n→ 302 to signed R2 URL\n(1 hr expiry)"| R2
+    Frontend -->|"GET /api/audio/{id}?narrator={key}\n→ 302 to signed R2 URL\n(1 hr expiry)"| R2
     R2["Cloudflare R2\n─────────────\nPrivate bucket\nSigned URLs\nNo egress fees"]
-    R2 -->|"Audio stream\n(range requests)"| Player["Audio Player\n─────────────\nSegment pills\nChapter dropdown + jump\n±15s skip\nOverall progress"]
+    R2 -->|"Audio stream\n(range requests)"| Player["Audio Player\n─────────────\nSegment pills\nChapter dropdown + jump\n±15s skip\nOverall progress\nVoice toggle (narrations)"]
 ```
+
+## Narrations (voice toggle)
+
+A book's **primary** narration is rendered in its chosen narrator preset and
+stored on the segment rows (`Segment.audio_path`). Admins can render the same
+book in **additional** narrator presets from the Edit modal
+(`POST /books/{id}/narrations`); each extra voice's takes live in the
+`segment_audio` table (one row per segment × narrator), keeping the original
+audio untouched (no migration of years of rendered MP3s). Alternate rendering
+runs on the synth queue and **does not change `book.status`** — progress is
+tracked on the `SegmentAudio` rows and surfaced via each book's `narrations`
+list (`GET /books/` and `/books/{id}`).
+
+Listeners toggle voices in the player; the choice is remembered per book
+(localStorage) and the audio route serves the matching take
+(`GET /api/audio/{segment_id}?narrator={key}`), falling back to the primary
+take when a narrator is omitted or its take isn't rendered yet.
 
 ## Status flow
 

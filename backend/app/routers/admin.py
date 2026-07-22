@@ -4,15 +4,39 @@ Every route here is gated by `require_admin`. This module is the foundation
 for the admin panel; later PRs add books/errors/workers/resources/logs
 endpoints alongside the summary below.
 """
+import os
+import shutil
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+)
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Book, PipelineEvent, Segment, User
-from ..schemas import AdminBookRow, PipelineEventOut
+from ..models import (
+    ABTest,
+    ABTestOption,
+    ABTestVote,
+    Book,
+    PipelineEvent,
+    Segment,
+    User,
+)
+from ..schemas import (
+    AdminBookRow,
+    AdminUserRow,
+    PipelineEventOut,
+    UserAccessUpdate,
+)
+from ..services import storage
 from ..services.monitor import (
     read_web_logs,
     read_worker_logs,
@@ -20,6 +44,9 @@ from ..services.monitor import (
     worker_stats,
 )
 from .auth import require_admin
+
+STORAGE_AB_AUDIO = "storage/ab_audio"
+os.makedirs(STORAGE_AB_AUDIO, exist_ok=True)
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 
@@ -160,3 +187,137 @@ def admin_events(
         )
         for ev, title in rows
     ]
+
+
+# --- Access management -------------------------------------------------------
+
+
+@router.get("/users", response_model=List[AdminUserRow])
+def admin_users(db: Session = Depends(get_db)):
+    """Everyone who has signed in, so the admin can grant/revoke A/B access."""
+    return db.query(User).order_by(User.id.asc()).all()
+
+
+@router.patch("/users/{user_id}", response_model=AdminUserRow)
+def admin_update_user(
+    user_id: int,
+    body: UserAccessUpdate,
+    db: Session = Depends(get_db),
+):
+    """Grant or revoke a user's A/B tests access."""
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(404, "User not found")
+    user.ab_test_access = body.ab_test_access
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+# --- A/B test management -----------------------------------------------------
+
+
+def _save_option_audio(option: ABTestOption, upload: UploadFile) -> None:
+    """Persist an uploaded clip for an option: R2 in prod, local otherwise.
+    Requires option.id, so call after the row is flushed."""
+    if storage.is_enabled():
+        local = os.path.join(STORAGE_AB_AUDIO, f"{option.id}.mp3")
+        with open(local, "wb") as f:
+            shutil.copyfileobj(upload.file, f)
+        key = f"ab_tests/{option.id}.mp3"
+        storage.upload(local, key)
+        os.remove(local)
+        option.audio_key = key
+    else:
+        path = os.path.join(STORAGE_AB_AUDIO, f"{option.id}.mp3")
+        with open(path, "wb") as f:
+            shutil.copyfileobj(upload.file, f)
+        option.audio_key = path
+
+
+def _serialize_admin_test(test: ABTest, tallies: dict[int, dict]) -> dict:
+    counts = tallies.get(test.id, {})
+    total = sum(counts.values())
+    return {
+        "id": test.id,
+        "title": test.title,
+        "description": test.description,
+        "published": test.published,
+        "created_at": test.created_at,
+        "options": [
+            {"id": o.id, "key": o.key, "label": o.label} for o in test.options
+        ],
+        "results": {
+            "A": counts.get("A", 0),
+            "B": counts.get("B", 0),
+            "no_diff": counts.get("no_diff", 0),
+            "total": total,
+        },
+    }
+
+
+@router.get("/ab-tests")
+def admin_list_ab_tests(db: Session = Depends(get_db)):
+    """All A/B tests (published or not) with per-choice vote tallies."""
+    tests = db.query(ABTest).order_by(ABTest.created_at.desc()).all()
+    rows = (
+        db.query(ABTestVote.ab_test_id, ABTestVote.choice, func.count(ABTestVote.id))
+        .group_by(ABTestVote.ab_test_id, ABTestVote.choice)
+        .all()
+    )
+    tallies: dict[int, dict] = {}
+    for test_id, choice, count in rows:
+        tallies.setdefault(test_id, {})[choice] = count
+    return [_serialize_admin_test(t, tallies) for t in tests]
+
+
+@router.post("/ab-tests")
+def admin_create_ab_test(
+    title: str = Form(...),
+    description: Optional[str] = Form(None),
+    label_a: str = Form(...),
+    label_b: str = Form(...),
+    file_a: UploadFile = File(...),
+    file_b: UploadFile = File(...),
+    published: bool = Form(True),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Create a two-clip A/B test. Both clips are uploaded here and stored
+    alongside book audio (R2 in prod)."""
+    test = ABTest(
+        title=title,
+        description=description,
+        published=published,
+        created_by_user_id=admin.id,
+    )
+    opt_a = ABTestOption(key="A", label=label_a, order=0)
+    opt_b = ABTestOption(key="B", label=label_b, order=1)
+    test.options = [opt_a, opt_b]
+    db.add(test)
+    db.flush()  # assign ids before naming the audio objects
+
+    _save_option_audio(opt_a, file_a)
+    _save_option_audio(opt_b, file_b)
+    db.commit()
+    db.refresh(test)
+    return _serialize_admin_test(test, {})
+
+
+@router.delete("/ab-tests/{test_id}", status_code=204)
+def admin_delete_ab_test(test_id: int, db: Session = Depends(get_db)):
+    """Delete a test, its options, votes, and stored clips."""
+    test = db.get(ABTest, test_id)
+    if not test:
+        raise HTTPException(404, "Test not found")
+
+    for option in test.options:
+        if not option.audio_key:
+            continue
+        if storage.is_r2_key(option.audio_key):
+            storage.delete_prefix(option.audio_key)
+        elif os.path.exists(option.audio_key):
+            os.remove(option.audio_key)
+
+    db.delete(test)  # cascades to options + votes
+    db.commit()

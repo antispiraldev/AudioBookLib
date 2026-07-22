@@ -8,8 +8,31 @@ class UserOut(BaseModel):
     email: str
     display_name: Optional[str] = None
     role: str
+    ab_test_access: bool = False
 
     model_config = {"from_attributes": True}
+
+
+class AdminUserRow(BaseModel):
+    """A row in the admin access list — who has signed in and whether they can
+    see the A/B tests."""
+    id: int
+    email: str
+    display_name: Optional[str] = None
+    role: str
+    ab_test_access: bool = False
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class UserAccessUpdate(BaseModel):
+    ab_test_access: bool
+
+
+class ABTestVoteIn(BaseModel):
+    # An option key ("A"/"B") or "no_diff"; validated against the test's options.
+    choice: str
 
 
 class SegmentOut(BaseModel):
@@ -36,6 +59,18 @@ class SegmentUpdate(BaseModel):
     text: str
 
 
+class NarrationOut(BaseModel):
+    """One selectable narration for a book — the primary narrator plus any
+    alternate voices that have been (or are being) rendered."""
+    narrator: str            # preset key
+    label: str               # human label, e.g. "Older woman"
+    voice: str               # underlying TTS voice
+    primary: bool            # the book's main narration (audio on the segments)
+    ready: bool              # every segment rendered — safe to play end to end
+    segments_ready: int
+    segments_total: int
+
+
 class BookOut(BaseModel):
     id: int
     title: str
@@ -51,6 +86,7 @@ class BookOut(BaseModel):
     tts_instructions: Optional[str] = None
     created_at: datetime
     segments: List[SegmentOut] = []
+    narrations: List[NarrationOut] = []
 
     model_config = {"from_attributes": True}
 
