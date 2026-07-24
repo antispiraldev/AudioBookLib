@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 import wave
@@ -61,13 +62,39 @@ def _instructions(noun: str) -> str:
 #   elevenlabs -> voice_id, model_id, voice_settings   (no NL prompt; see note)
 #   gemini     -> voice_name, model, instructions (style prompt)   [A/B only, WAV]
 #
-# The premium ElevenLabs presets are the "highest quality, cost is fine" option
-# for select books. They need ELEVENLABS_API_KEY in the environment. multilingual_v2
-# is ElevenLabs' own long-form-narration recommendation and, unlike v3, is
-# deterministic enough to stay consistent across a book synthesized segment by
-# segment. The specific voice_ids and voice_settings below are a starting point to
-# be *finalized by the coming A/B round* — confirm the ids against the account with
-# `python scripts/tts_ab.py --el-list-voices`.
+# The ElevenLabs presets need ELEVENLABS_API_KEY in the environment.
+# multilingual_v2 is ElevenLabs' own long-form-narration recommendation and, unlike
+# v3, is deterministic enough to stay consistent across a book synthesized segment
+# by segment.
+#
+# storyteller / elegiac / scholar are *designed* voices: generated from a written
+# description via ElevenLabs Voice Design and saved to the account (category
+# "generated"). Nothing is cloned from or trained on any real person's recordings —
+# the description alone produces the voice. Each preset keeps the prompt it was
+# generated from in "description", so a voice can be regenerated or varied later
+# without guessing at what produced it.
+#
+# All ElevenLabs voice_ids here were confirmed against the account; re-check with
+# `python scripts/tts_ab.py --el-list-voices` if the account changes.
+
+
+def _el_settings() -> dict:
+    """Shared ElevenLabs generation settings, as a fresh dict per preset.
+
+    stability 0.5 keeps a book consistent across segment-by-segment synthesis
+    without flattening delivery; style 0.0 leaves interpretation to the voice
+    rather than exaggerating it. Returned fresh rather than shared so a mutated
+    copy can never leak across presets.
+    """
+    return {
+        "stability": 0.5,
+        "similarity_boost": 0.8,
+        "style": 0.0,
+        "use_speaker_boost": True,
+        "speed": 1.0,
+    }
+
+
 NARRATORS: dict[str, dict] = {
     "older_man": {
         "provider": "openai",
@@ -83,38 +110,78 @@ NARRATORS: dict[str, dict] = {
     },
     "premium_man": {
         "provider": "elevenlabs",
-        "label": "Premium male — ElevenLabs (highest quality)",
+        "label": "Premium male — ElevenLabs (premade George)",
         "voice": "George",  # display only; the real selector is voice_id
-        "voice_id": "JBFqnCBsd6RMkjVDRZzb",  # premade "George"; verify per account
+        "voice_id": "JBFqnCBsd6RMkjVDRZzb",  # premade "George"
         "model_id": "eleven_multilingual_v2",
-        "voice_settings": {
-            "stability": 0.5,
-            "similarity_boost": 0.8,
-            "style": 0.0,
-            "use_speaker_boost": True,
-            "speed": 1.0,
-        },
+        "voice_settings": _el_settings(),
     },
     "premium_woman": {
         "provider": "elevenlabs",
-        "label": "Premium female — ElevenLabs (highest quality)",
+        "label": "Premium female — ElevenLabs (premade Charlotte)",
         "voice": "Charlotte",  # display only
-        "voice_id": "XB0fDUnXU5powFXDhCwa",  # premade "Charlotte"; verify per account
+        "voice_id": "XB0fDUnXU5powFXDhCwa",  # premade "Charlotte"
         "model_id": "eleven_multilingual_v2",
-        "voice_settings": {
-            "stability": 0.5,
-            "similarity_boost": 0.8,
-            "style": 0.0,
-            "use_speaker_boost": True,
-            "speed": 1.0,
-        },
+        "voice_settings": _el_settings(),
+    },
+    # --- designed voices (ElevenLabs Voice Design) --------------------------
+    "storyteller": {
+        "provider": "elevenlabs",
+        "label": "Storyteller (default) — warm, weathered, unhurried",
+        "voice": "Aedo Storyteller",  # display only
+        "voice_id": "1KEHim48yNPGIl7XMnXV",
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": _el_settings(),
+        "description": (
+            "A middle-aged man with a warm, slightly gravelly low voice narrating a "
+            "long-form history audiobook. Unhurried and measured, with natural breath "
+            "and thoughtful pauses. Quietly authoritative and a little world-weary, "
+            "with dry restraint and no theatricality. Intimate close-microphone "
+            "sound, clean and dry."
+        ),
+    },
+    "elegiac": {
+        "provider": "elevenlabs",
+        "label": "Elegiac — soft-spoken British, hushed and deliberate",
+        "voice": "Aedo Elegiac",  # display only
+        "voice_id": "Sa5jpECBOyLwfNJFv0BR",
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": _el_settings(),
+        "description": (
+            "A softly spoken British man in his early forties narrating a history "
+            "documentary. Warm low-mid baritone, close to the microphone, almost "
+            "hushed. Unhurried and deliberate, with long thoughtful pauses. "
+            "Melancholy and reverent, restrained emotion, never dramatic. Clean dry "
+            "studio recording, intimate, no reverb."
+        ),
+    },
+    "scholar": {
+        "provider": "elevenlabs",
+        "label": "Scholar — older, resonant, contemplative",
+        "voice": "Aedo Scholar",  # display only
+        "voice_id": "38xpcGM0hFcOCRDnICzB",
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": _el_settings(),
+        "description": (
+            "An older man in his sixties with a resonant, gently weathered voice "
+            "reading a literary history book aloud. Slow and patient, with a slight "
+            "rasp and audible breath. Contemplative and grave but never mournful; "
+            "wisdom rather than performance. Warm dry studio recording, close and "
+            "intimate."
+        ),
     },
 }
-DEFAULT_NARRATOR = "older_man"
+DEFAULT_NARRATOR = "storyteller"
 
-# Backward-compatible module constants for callers that pass no preset.
-VOICE = NARRATORS[DEFAULT_NARRATOR]["voice"]
-DEFAULT_INSTRUCTIONS = NARRATORS[DEFAULT_NARRATOR]["instructions"]
+# The OpenAI baseline is deliberately *not* DEFAULT_NARRATOR. These two constants
+# are the fallbacks the OpenAI path uses when a preset carries no voice or prompt of
+# its own, so they must keep pointing at an OpenAI preset even though the default
+# narrator is now an ElevenLabs one. Deriving them from DEFAULT_NARRATOR would raise
+# KeyError on an ElevenLabs default (those presets have no "instructions") and would
+# silently drop the prosody prompt that fixed the original flat-narration complaint.
+OPENAI_BASELINE_NARRATOR = "older_man"
+VOICE = NARRATORS[OPENAI_BASELINE_NARRATOR]["voice"]
+DEFAULT_INSTRUCTIONS = NARRATORS[OPENAI_BASELINE_NARRATOR]["instructions"]
 
 _client = None
 
@@ -172,14 +239,41 @@ def _synthesize_openai(text: str, output_path: str, *, voice: str, instructions:
 ELEVENLABS_BASE = "https://api.elevenlabs.io/v1"
 
 
+# ElevenLabs caps *concurrent* requests per plan (roughly 5-15), well below the
+# worker's SYNTH_CONCURRENCY. Now that the default narrator is an ElevenLabs voice,
+# a book synthesizing segment by segment will routinely bump that ceiling, so a 429
+# is an expected transient rather than a real failure — back off and retry instead
+# of losing the segment. Transient 5xx gets the same treatment.
+_RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
+_MAX_ATTEMPTS = 5
+
+
+def _retry_delay(exc: urllib.error.HTTPError, attempt: int) -> float:
+    """Seconds to wait before retrying, preferring the provider's own Retry-After."""
+    header = exc.headers.get("Retry-After") if exc.headers else None
+    if header:
+        try:
+            return max(0.0, min(float(header), 60.0))
+        except (TypeError, ValueError):
+            pass  # Retry-After may be an HTTP date; fall back to backoff
+    return 2.0**attempt
+
+
 def _http_post(url: str, headers: dict, body: bytes, timeout: int = 300) -> bytes:
-    req = urllib.request.Request(url, data=body, method="POST", headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read()
-    except urllib.error.HTTPError as exc:  # surface the provider's error text
-        detail = exc.read().decode("utf-8", "replace")[:500]
-        raise RuntimeError(f"{url.split('?')[0]} -> HTTP {exc.code}: {detail}") from exc
+    for attempt in range(_MAX_ATTEMPTS):
+        req = urllib.request.Request(url, data=body, method="POST", headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.read()
+        except urllib.error.HTTPError as exc:  # surface the provider's error text
+            detail = exc.read().decode("utf-8", "replace")[:500]
+            if exc.code in _RETRY_STATUSES and attempt < _MAX_ATTEMPTS - 1:
+                time.sleep(_retry_delay(exc, attempt))
+                continue
+            raise RuntimeError(
+                f"{url.split('?')[0]} -> HTTP {exc.code}: {detail}"
+            ) from exc
+    raise RuntimeError(f"{url.split('?')[0]} -> exhausted {_MAX_ATTEMPTS} attempts")
 
 
 def _synthesize_elevenlabs(

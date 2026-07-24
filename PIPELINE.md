@@ -21,7 +21,7 @@ flowchart TD
         Review -->|"approve → Celery group"| Synth
 
         subgraph Parallel ["Parallel segment tasks (up to that provider's queue concurrency)"]
-            Synth["synthesize_segment × N\n─────────────\ntts.resolve(narrator, instructions) → preset\nqueue_for(provider) picks the queue ONCE per book\n(one narrator ⇒ one provider ⇒ one queue)\ntts.synthesize_preset() dispatches by provider\n• openai gpt-4o-mini-tts → synth queue\n  (default older_man/onyx; free-text\n  instructions override prompt)\n• elevenlabs multilingual_v2 → synth_el queue\n  (premium presets; needs ELEVENLABS_API_KEY,\n  native MP3; own queue caps concurrency\n  under EL's per-plan concurrent limit)\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
+            Synth["synthesize_segment × N\n─────────────\ntts.resolve(narrator, instructions) → preset\nqueue_for(provider) picks the queue ONCE per book\n(one narrator ⇒ one provider ⇒ one queue)\ntts.synthesize_preset() dispatches by provider\n• elevenlabs multilingual_v2 → synth_el queue\n  (DEFAULT storyteller; designed voices +\n  premade premium presets; needs\n  ELEVENLABS_API_KEY, native MP3;\n  429/5xx retry with backoff; own queue caps\n  concurrency under EL's per-plan limit —\n  NB the default narrator lives here, so most\n  books run at EL_CONCURRENCY, not SYNTH)\n• openai gpt-4o-mini-tts → synth queue\n  (older_man/onyx, older_woman; free-text\n  instructions override prompt)\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
         end
 
         Synth -->|"chord callback"| Finalize
