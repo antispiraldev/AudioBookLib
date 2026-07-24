@@ -47,11 +47,18 @@ the OpenAI default vs premium ElevenLabs + Gemini voices.
 - [ ] Confirm the premium `voice_id`s against the account with
       `python scripts/tts_ab.py --el-list-voices` before trusting a win — the ids in
       `NARRATORS`/`PROVIDER_PRESETS` are documented defaults, not verified per-account.
-- [ ] Set `ELEVENLABS_API_KEY` (and `GEMINI_API_KEY` for the A/B harness) in `.env`
-      on the **worker** droplet before selecting a premium narrator in prod.
-- [ ] **ElevenLabs caps *concurrent* requests per plan (often 5–15).** Synth runs at
-      `SYNTH_CONCURRENCY` 16 — a premium book will 429. Gate premium synthesis to a
-      lower concurrency (own queue) or a Scale-tier plan before shipping it widely.
+- [x] `ELEVENLABS_API_KEY` set in `.env` on the **worker** droplet (2026-07-22, hash-verified
+      against local; `.env.bak.pre-el` left as backup). Takes effect on the next
+      `docker compose -f docker-compose.worker.yml up -d` — `env_file` is read at
+      container creation, so the running containers don't have it until then.
+- [ ] `GEMINI_API_KEY` is still unset everywhere except locally — only the A/B harness
+      needs it, so round 4 currently skips the four Gemini presets.
+- [ ] **ElevenLabs caps *concurrent* requests per plan (often 5–15)** while synth runs at
+      `SYNTH_CONCURRENCY` 16. Premium narrators now route to a dedicated `synth_el` queue
+      served by `worker-el` at `EL_CONCURRENCY` (default 3) so the two scale separately.
+      Before the first premium book: set `EL_CONCURRENCY` to the plan's actual concurrent
+      limit, and deploy the worker (the queue is inert until `worker-el` is running —
+      tasks would sit pending, not fail).
 - [ ] Gemini is A/B-only for now — it returns PCM, so wiring it into production would
       need a PCM→MP3 transcode step the pipeline doesn't have.
 

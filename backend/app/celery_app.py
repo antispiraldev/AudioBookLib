@@ -41,3 +41,37 @@ celery.conf.update(
     },
     task_default_queue="synth",
 )
+
+
+# Per-provider synthesis queues, layered on top of the static routes above.
+#
+# Why: the routes above are per-*task*, but the queue a segment belongs on
+# depends on its book's narrator, which is per-*call*. ElevenLabs caps
+# *concurrent* requests per plan (roughly 5-15) — far below SYNTH_CONCURRENCY
+# (16 in production). Sharing one pool would 429 a premium book and stall
+# ordinary OpenAI books queued behind it. A provider gets its own queue so it
+# can run at its own safe concurrency, tuned independently in .env.
+#
+# A book (or one alternate narration) has exactly one narrator, hence exactly
+# one provider, so every segment of a single render lands on the same queue.
+# tasks.py resolves it once at enqueue time and applies it with
+# .set(queue=...), which overrides the static route for that call.
+#
+# OpenAI stays on "synth" so the default path is byte-for-byte unchanged.
+# Gemini is deliberately absent: it returns PCM while the pipeline stores .mp3,
+# so there is no production Gemini path to run. Mapping it here without a
+# matching worker in docker-compose.worker.yml would silently park its tasks on
+# a queue nothing consumes; queue_for() falls back to "synth" instead.
+PROVIDER_QUEUE = {
+    "openai": "synth",
+    "elevenlabs": "synth_el",
+}
+
+
+def queue_for(provider: str | None) -> str:
+    """The synthesis queue for a TTS provider.
+
+    Unknown or missing providers fall back to the shared "synth" queue, which
+    always has a worker — never a queue that might have none.
+    """
+    return PROVIDER_QUEUE.get(provider or "openai", "synth")

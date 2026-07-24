@@ -13,15 +13,15 @@ flowchart TD
 
     Queue --> Ingest
 
-    subgraph Worker ["Celery Workers — dedicated droplet · ingest queue (INGEST_CONCURRENCY, 2) + synth queue (SYNTH_CONCURRENCY, prod 16)"]
+    subgraph Worker ["Celery Workers — dedicated droplet · ingest queue (INGEST_CONCURRENCY, 2) + synth queue (SYNTH_CONCURRENCY, prod 16) + synth_el queue (EL_CONCURRENCY, 3)"]
         Ingest["ingest_book\n─────────────────\nPyMuPDF block/span analysis\n• detect body font size\n• skip headers / footers\n• skip page numbers\n• skip footnotes\n• rejoin hyphenated breaks\n• format headings for TTS\nHeuristic cleanup\n• NFKC / ligatures\n• strip Project Gutenberg header/license\n• strip leading table-of-contents block\n• strip [n] citations, URLs/DOIs\n• drop trailing references section\n• expand e.g./i.e./et al.\ndetect scanned PDFs (chars/page) → needs OCR\nChapter detection (regex + roman validation\n+ body-gap/dedup/longest-run filters)\nChunk ~1800 chars, chapter-aware\n(never crosses a chapter boundary;\nchapter_title on first segment)\ngpt-4o-mini polish (verbatim, parallel)\n→ status: review (pause)"]
 
         Review["Admin review\n─────────────\nGET /books/{id}/segments\nedit segments if needed\nPOST /books/{id}/synthesize"]
         Ingest -->|"status: review"| Review
         Review -->|"approve → Celery group"| Synth
 
-        subgraph Parallel ["Parallel segment tasks (up to synth concurrency)"]
-            Synth["synthesize_segment × N\n─────────────\ntts.resolve(narrator, instructions) → preset\ntts.synthesize_preset() dispatches by provider\n• openai gpt-4o-mini-tts (default older_man/onyx;\n  free-text instructions override prompt)\n• elevenlabs multilingual_v2 (premium presets;\n  needs ELEVENLABS_API_KEY, native MP3)\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
+        subgraph Parallel ["Parallel segment tasks (up to that provider's queue concurrency)"]
+            Synth["synthesize_segment × N\n─────────────\ntts.resolve(narrator, instructions) → preset\nqueue_for(provider) picks the queue ONCE per book\n(one narrator ⇒ one provider ⇒ one queue)\ntts.synthesize_preset() dispatches by provider\n• openai gpt-4o-mini-tts → synth queue\n  (default older_man/onyx; free-text\n  instructions override prompt)\n• elevenlabs multilingual_v2 → synth_el queue\n  (premium presets; needs ELEVENLABS_API_KEY,\n  native MP3; own queue caps concurrency\n  under EL's per-plan concurrent limit)\n→ MP3 written to local temp\n→ uploaded to R2\n→ local temp deleted"]
         end
 
         Synth -->|"chord callback"| Finalize
@@ -53,7 +53,9 @@ book in **additional** narrator presets from the Edit modal
 (`POST /books/{id}/narrations`); each extra voice's takes live in the
 `segment_audio` table (one row per segment × narrator), keeping the original
 audio untouched (no migration of years of rendered MP3s). Alternate rendering
-runs on the synth queue and **does not change `book.status`** — progress is
+is routed by its own narrator's provider, exactly like a primary narration (an
+ElevenLabs alternate goes to `synth_el`), and **does not change `book.status`**
+— progress is
 tracked on the `SegmentAudio` rows and surfaced via each book's `narrations`
 list (`GET /books/` and `/books/{id}`).
 
