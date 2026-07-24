@@ -10,7 +10,7 @@ from celery.signals import (
     worker_ready,
 )
 
-from .celery_app import celery
+from .celery_app import celery, queue_for
 from .database import SessionLocal
 from .models import Book, Segment, SegmentAudio
 from .services.clean import clean_many
@@ -124,6 +124,9 @@ def synthesize_book(book_id: int) -> None:
             .order_by(Segment.order)
             .all()
         ]
+        # Resolve the provider queue while the book is still attached to the
+        # session — the whole book shares one narrator, so one queue.
+        queue = queue_for(tts.resolve(book.tts_narrator)["provider"])
     finally:
         db.close()
 
@@ -131,8 +134,10 @@ def synthesize_book(book_id: int) -> None:
         _finalize_book(book_id)
         return
 
+    # finalize_book deliberately keeps its default "synth" route: it touches no
+    # provider, and worker-synth is the one worker guaranteed to be running.
     chord(
-        group(synthesize_segment.s(sid, book_id) for sid in segment_ids)
+        group(synthesize_segment.s(sid, book_id).set(queue=queue) for sid in segment_ids)
     )(finalize_book.s(book_id))
 
 
@@ -235,7 +240,13 @@ def synthesize_narration(book_id: int, narrator: str) -> None:
         db.close()
 
     if audio_ids:
-        group(synthesize_segment_audio.s(aid, book_id) for aid in audio_ids).apply_async()
+        # Alternate narrations render in the preset's own provider, so they get
+        # the same per-provider queue treatment as a primary narration.
+        queue = queue_for(tts.resolve(narrator)["provider"])
+        group(
+            synthesize_segment_audio.s(aid, book_id).set(queue=queue)
+            for aid in audio_ids
+        ).apply_async()
 
 
 @celery.task

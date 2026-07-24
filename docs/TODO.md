@@ -50,19 +50,29 @@ selectable and are still the cheap path.
 - [x] Confirm `voice_id`s against the account — all confirmed via
       `GET /v1/voices/{id}`. Note `/v1/voices` lists only the *saved* library, so a
       premade voice missing from it is not broken; check the id endpoint instead.
-- [x] Set `ELEVENLABS_API_KEY` on the worker droplet.
-- [x] 429 handling: `_http_post` now retries 429/5xx with exponential backoff and
-      honours `Retry-After`, so exceeding the concurrency cap costs latency instead
-      of failing a segment.
+- [x] `ELEVENLABS_API_KEY` set in `.env` on the **worker** droplet (2026-07-22, hash-verified
+      against local; `.env.bak.pre-el` left as backup) and loaded into the running
+      containers 2026-07-23 — `env_file` is read at container *creation*, so
+      `docker compose restart` will not pick it up; use `up -d --force-recreate`.
+- [x] 429 handling: `_http_post` retries 429/5xx with exponential backoff and honours
+      `Retry-After`, so exceeding the concurrency cap costs latency rather than
+      failing a segment. Complements the `synth_el` queue rather than replacing it.
+- [ ] `GEMINI_API_KEY` is still unset everywhere except locally — only the A/B harness
+      needs it, so round 4 currently skips the four Gemini presets.
+- [ ] **`worker-el` must be deployed before the next book, now that the default
+      narrator is an ElevenLabs voice.** The `synth_el` queue is inert until
+      `worker-el` runs — tasks sit pending rather than failing — and with
+      `storyteller` as default that is *every* book, not just premium ones.
+- [ ] **`EL_CONCURRENCY` (default 3) is now the throughput ceiling for almost all
+      synthesis**, since the default narrator routes to `synth_el` while the
+      16-slot `synth` queue sits idle. The queue was sized when ElevenLabs was the
+      exception; raise it to the plan's actual concurrent limit, or accept that
+      books render several times slower than they did on OpenAI.
 - [ ] **Cost: ElevenLabs is character-metered and is now on the default path.** A
       ~6-hour book is roughly 300k characters, so every book costs materially more
       than the OpenAI path did (~$5–6/book). Watch the first few books and set a
       `character_limit` on the API key; switch `DEFAULT_NARRATOR` back to
       `older_man` if the spend is wrong.
-- [ ] **`SYNTH_CONCURRENCY` is 16 vs ElevenLabs' ~5–15 concurrent cap.** Retry makes
-      this survivable, but the durable fix is a separate low-concurrency queue for
-      ElevenLabs synthesis (or lowering `SYNTH_CONCURRENCY` in the worker `.env`,
-      which now costs nothing on the OpenAI side since it's no longer the default).
 - [ ] Gemini is A/B-only for now — it returns PCM, so wiring it into production would
       need a PCM→MP3 transcode step the pipeline doesn't have.
 
