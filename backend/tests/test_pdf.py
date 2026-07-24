@@ -326,6 +326,24 @@ def test_ebook_toc_run_stripped_without_contents_heading():
     assert "DUNE MESSIAH" in out  # title lines before the run survive
 
 
+def test_blocky_extraction_toc_strip_keeps_body_and_heading():
+    # Block-per-paragraph extraction: every paragraph is ONE line surrounded
+    # by blanks, so "two consecutive prose lines" never occurs. The old reset-
+    # on-blank scan overshot 60% into a real book (Common Sense) before the
+    # degradation guard caught it.
+    lines = ["COMMON SENSE", "Thomas Paine"]
+    lines += ["TABLE OF CONTENTS"]
+    lines += ["INTRODUCTION   .    .    .    .    .    3"]
+    lines += ["CHAPTER 1  .    .    .    .    . 4 OF THE ORIGIN"]
+    lines += ["", "INTRODUCTION", PROSE, ""]
+    for _ in range(12):
+        lines += [PROSE, ""]
+    out = _strip_front_matter("\n".join(lines))
+    assert ".    .    ." not in out          # dotted TOC entries cut
+    assert "INTRODUCTION" in out             # heading walked back in
+    assert out.count(PROSE) == 13            # no body prose lost
+
+
 def test_scattered_toc_like_lines_do_not_trigger():
     # Fewer than five consecutive navigation lines is not a TOC
     doc = "\n".join(["Cover", PROSE, "Chapter 1", PROSE, "Epilogue", PROSE * 2])

@@ -146,24 +146,80 @@ def _strip_front_matter(text: str) -> str:
     if contents_idx is None:
         return text
 
-    # Find where the body starts: the first of two consecutive prose lines.
-    body_start = None
-    run_start = None
-    run = 0
-    for i in range(contents_idx + 1, len(lines)):
-        if _is_prose_line(lines[i]):
-            if run == 0:
-                run_start = i
-            run += 1
-            if run >= 2:
-                body_start = run_start
-                break
-        else:
-            run = 0
+    body_start = _find_body_start(lines, contents_idx)
     if body_start is None:
         return text  # couldn't confidently locate the body — don't cut
 
     return "\n".join(lines[:contents_idx] + lines[body_start:])
+
+
+# A TOC entry's dotted leader ("INTRODUCTION . . . . 3")
+_DOT_LEADER_RE = re.compile(r"(?:\.\s*){4,}")
+
+
+def _find_body_start(lines: List[str], anchor: int) -> Optional[int]:
+    """First body line after a TOC anchor, or None if we can't tell.
+
+    Handles both extraction shapes. Line-per-source-line docs put prose in
+    consecutive runs, so two prose lines in a row (blank paragraph gaps don't
+    break a run — that reset once cost a book 60% of its text) mark the body.
+    Block-per-paragraph docs never have adjacent prose lines (every paragraph
+    is one line surrounded by blanks), so there the first prose line is the
+    body. Finally, walk back over ALL-CAPS heading lines stuck to the body
+    ("INTRODUCTION", "CHAPTER 1") — they are narration, not TOC.
+    """
+    prose_idxs = [
+        i for i in range(anchor + 1, len(lines)) if _is_prose_line(lines[i])
+    ]
+    if not prose_idxs:
+        return None
+    pairs = sum(1 for a, b in zip(prose_idxs, prose_idxs[1:]) if b == a + 1)
+    blocky = pairs < max(1, len(prose_idxs) // 5)
+
+    if blocky:
+        body = prose_idxs[0]
+    else:
+        body = None
+        run_start = None
+        run = 0
+        for i in range(anchor + 1, len(lines)):
+            if not lines[i].strip():
+                continue  # paragraph gap — doesn't break a prose run
+            if _is_prose_line(lines[i]):
+                if run == 0:
+                    run_start = i
+                run += 1
+                if run >= 2:
+                    body = run_start
+                    break
+            else:
+                run = 0
+        if body is None:
+            return None
+
+    # Re-attach heading lines directly above the body. ALL-CAPS only: that
+    # keeps "INTRODUCTION" / "CHAPTER 1" while never re-absorbing TOC entries
+    # like Dune's title-cased "Chapter 12" navigation lines.
+    j = body - 1
+    steps = 0
+    while j > anchor and steps < 4:
+        s = lines[j].strip()
+        steps += 1
+        if not s:
+            j -= 1
+            continue
+        if (
+            s == s.upper()
+            and len(s) <= 100
+            and not _DOT_LEADER_RE.search(s)
+            and len(_STANDALONE_NUM_RE.findall(s)) <= 1
+            and not _CONTENTS_HEADING_RE.match(s)
+        ):
+            body = j
+            j -= 1
+            continue
+        break
+    return body
 
 # Bracketed numeric citation markers: [12], [12, 15], [12–14]
 _CITATION_RE = re.compile(r"\[\d+(?:\s*[,–-]\s*\d+)*\]")
