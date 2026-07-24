@@ -14,7 +14,12 @@ from ..models import Book, Segment, SegmentAudio, User
 from ..schemas import BookOut, BookUpdate, NarrationOut, SegmentText, SegmentUpdate
 from ..services import storage, tts
 from ..services.suggest import suggest_metadata
-from ..tasks import ingest_book, synthesize_book, synthesize_narration
+from ..tasks import (
+    ingest_book,
+    refresh_book_text,
+    synthesize_book,
+    synthesize_narration,
+)
 from .auth import get_current_user, require_admin
 
 log = logging.getLogger(__name__)
@@ -339,6 +344,28 @@ def _clear_generated(book_id: int, db: Session) -> None:
         shutil.move(local_audio, dst)
     db.query(Segment).filter(Segment.book_id == book_id).delete()
     db.commit()
+
+
+@router.post("/{book_id}/refresh", response_model=BookOut, dependencies=[Depends(require_admin)])
+def refresh_book(book_id: int, db: Session = Depends(get_db)):
+    """Diff-based backfill: re-extract with the current cleaning heuristics
+    and re-synthesize only the segments whose text changed. Unchanged segments
+    keep their audio (and alternate-narration takes) — this is the cheap way
+    to roll a heuristics improvement across an already-rendered book. Use
+    /reprocess instead to rebuild from scratch or replace the PDF."""
+    book = db.get(Book, book_id)
+    if not book:
+        raise HTTPException(404, "Book not found")
+    if book.status not in ("complete", "error"):
+        raise HTTPException(
+            400, "Book is still processing — refresh applies to rendered books."
+        )
+    if not storage.pdf_available(book.pdf_path):
+        raise HTTPException(
+            400, "Source PDF is unavailable — use reprocess to attach it first."
+        )
+    refresh_book_text.delay(book_id)
+    return _with_narrations(book, db)
 
 
 @router.post("/{book_id}/reprocess", response_model=BookOut, dependencies=[Depends(require_admin)])

@@ -22,6 +22,7 @@ from app.services.pdf import (  # noqa: E402
     _smart_titlecase,
     _split,
     _strip_front_matter,
+    _strip_running_headers,
     looks_scanned,
 )
 
@@ -189,6 +190,146 @@ def test_gutenberg_banners_stripped():
     out = _normalize_text(doc)
     assert "Real body prose" in out
     assert "gutenberg" not in out.lower() and "License junk" not in out
+
+
+# ------------------------------------------------------- running headers
+
+def test_running_header_with_page_numbers_stripped():
+    # Title + varying page number at the top of most pages — the book 14
+    # pattern ("BEYOND GOOD AND EVIL 127" landing mid-sentence).
+    pages = [
+        f"BEYOND GOOD AND EVIL {100 + i}\n{PROSE}\n{PROSE}\n{PROSE}"
+        for i in range(10)
+    ]
+    out = _strip_running_headers(pages)
+    assert all("BEYOND GOOD" not in p for p in out)
+    assert all(PROSE in p for p in out)
+
+
+def test_alternating_verso_recto_headers_stripped():
+    pages = []
+    for i in range(12):
+        head = "ORIGIN OF SPECIES" if i % 2 else "THEORY OF NATURAL SELECTION"
+        pages.append(f"{i + 40} {head}\n{PROSE}\n{PROSE}")
+    out = _strip_running_headers(pages)
+    joined = "\n".join(out)
+    assert "ORIGIN OF SPECIES" not in joined
+    assert "NATURAL SELECTION" not in joined
+
+
+def test_chapter_headings_never_stripped_as_headers():
+    # Digit-stripped chapter lines all normalize to "chapter" — they must be
+    # exempt or every chapter heading would vanish.
+    pages = [f"Chapter {i + 1}.\n{PROSE}\n{PROSE}" for i in range(10)]
+    out = _strip_running_headers(pages)
+    assert all("Chapter" in p for p in out)
+
+
+def test_mid_page_refrain_not_treated_as_header():
+    # A poem's short repeated refrain repeats mid-page, not in the top/bottom
+    # zone — it must survive (Kalevala regression guard).
+    refrain = "Spake the ancient Wainamoinen"
+    pages = [
+        f"{PROSE}\n{PROSE}\n{refrain}\n{PROSE}\n{PROSE}\n{PROSE}"
+        for _ in range(20)
+    ]
+    out = _strip_running_headers(pages)
+    assert all(refrain in p for p in out)
+
+
+def test_header_stripped_everywhere_once_qualified():
+    # Once a key qualifies via the page-edge zone, mid-page occurrences
+    # (blocks merged out of order) are dropped too.
+    pages = [f"THE PROSE EDDA\n{PROSE}\n{PROSE}" for _ in range(9)]
+    pages.append(f"{PROSE}\nTHE PROSE EDDA\n{PROSE}\n{PROSE}")
+    out = _strip_running_headers(pages)
+    assert all("PROSE EDDA" not in p for p in out)
+
+
+# ------------------------------------------------------- markup stripping
+
+def test_bracket_markup_stripped_including_nested():
+    t = _normalize_text(
+        "Prose before. [Illustration: GUNNAR REFUSES TO LEAVE HOME] "
+        "More prose. [Footnote 61: See note [Greek: logos] on chapter 28.] "
+        "[Sidenote: A.D. 758.] End prose."
+    )
+    assert "Illustration" not in t and "Footnote" not in t
+    assert "Greek" not in t and "Sidenote" not in t
+    assert "Prose before." in t and "More prose." in t and "End prose." in t
+
+
+def test_emphasis_markers_unwrapped():
+    t = _normalize_text("He read _Punch_ and the =Thesaurus= that day.")
+    assert "_" not in t and "=" not in t
+    assert "Punch" in t and "Thesaurus" in t
+
+
+def test_equations_survive_equals_stripping():
+    t = _normalize_text("Where E = mc squared holds, and a = b = c follows.")
+    assert "E = mc" in t and "a = b = c" in t
+
+
+def test_ascii_box_lines_stripped():
+    t = _normalize_text(
+        "+-------------------------+\n"
+        "|Transcriber's Note: junk |\n"
+        "+-------------------------+\n"
+        + PROSE
+    )
+    assert "+---" not in t and "|" not in t and PROSE in t
+
+
+def test_emails_and_arxiv_ids_stripped():
+    t = _normalize_text(
+        "Ashish Vaswani avaswani@google.com wrote arXiv:1402.0993v1 today."
+    )
+    assert "@" not in t and "arXiv" not in t
+    assert "Ashish Vaswani" in t
+
+
+def test_index_heading_truncates_tail():
+    body = (PROSE + "\n") * 30
+    doc = body + "INDEX\nAbacus, i. 414\nBadashan, ii. 3-4\n"
+    t = _normalize_text(doc)
+    assert "Abacus" not in t and "Badashan" not in t
+    # …but only in the tail: a mention early in a long doc survives
+    doc2 = "Index\n" + (PROSE + "\n") * 40
+    assert "Index" in _normalize_text(doc2)
+
+
+def test_pg_license_without_end_banner_truncated():
+    body = (PROSE + "\n") * 30
+    doc = body + "START: FULL LICENSE\nThe Full Project Gutenberg License\n"
+    t = _normalize_text(doc)
+    assert "FULL LICENSE" not in t and PROSE in t
+
+
+def test_produced_by_credit_stripped():
+    doc = "Produced by An Anonymous Volunteer, and David Widger\n" + (PROSE + "\n") * 20
+    t = _normalize_text(doc)
+    assert "Widger" not in t and PROSE in t
+
+
+# -------------------------------------------------------- ebook TOC strip
+
+def test_ebook_toc_run_stripped_without_contents_heading():
+    lines = (
+        ["DUNE MESSIAH", "FRANK HERBERT", "Cover", "Title"]
+        + [f"Chapter {i}" for i in range(1, 25)]
+        + ["Epilogue", "Appendix I", "Also by Frank Herbert"]
+        + [PROSE] * 40  # enough body for the run to sit in the first ~15%
+    )
+    out = _strip_front_matter("\n".join(lines))
+    assert "Chapter 5" not in out and "Also by" not in out
+    assert PROSE in out
+    assert "DUNE MESSIAH" in out  # title lines before the run survive
+
+
+def test_scattered_toc_like_lines_do_not_trigger():
+    # Fewer than five consecutive navigation lines is not a TOC
+    doc = "\n".join(["Cover", PROSE, "Chapter 1", PROSE, "Epilogue", PROSE * 2])
+    assert _strip_front_matter(doc) == doc
 
 
 # ---------------------------------------------------------------- scanned

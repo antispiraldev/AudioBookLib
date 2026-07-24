@@ -14,7 +14,7 @@ flowchart TD
     Queue --> Ingest
 
     subgraph Worker ["Celery Workers — dedicated droplet · ingest queue (INGEST_CONCURRENCY, 2) + synth queue (SYNTH_CONCURRENCY, prod 16) + synth_el queue (EL_CONCURRENCY, 3)"]
-        Ingest["ingest_book\n─────────────────\nPyMuPDF block/span analysis\n• detect body font size\n• skip headers / footers\n• skip page numbers\n• skip footnotes\n• rejoin hyphenated breaks\n• format headings for TTS\nHeuristic cleanup\n• NFKC / ligatures\n• strip Project Gutenberg header/license\n• strip leading table-of-contents block\n• strip [n] citations, URLs/DOIs\n• drop trailing references section\n• expand e.g./i.e./et al.\ndetect scanned PDFs (chars/page) → needs OCR\nChapter detection (regex + roman validation\n+ body-gap/dedup/longest-run filters)\nChunk ~1800 chars, chapter-aware\n(never crosses a chapter boundary;\nchapter_title on first segment)\ngpt-4o-mini polish (verbatim, parallel)\n→ status: review (pause)"]
+        Ingest["ingest_book\n─────────────────\nPyMuPDF block/span analysis\n• detect body font size\n• skip headers / footers\n• skip page numbers\n• skip footnotes\n• rejoin hyphenated breaks\n• format headings for TTS\n• strip recurring running headers\n(cross-page, position-gated)\nHeuristic cleanup\n• NFKC / ligatures\n• strip Project Gutenberg header/license\n(+ tail-license fallback, Produced-by)\n• strip leading TOC block (Contents\nheading or ebook Chapter-run)\n• strip transcriber markup\n([Illustration/Footnote/Greek/Sidenote],\n_emphasis_, ASCII boxes)\n• strip [n] citations, URLs/DOIs,\nemails, arXiv IDs\n• drop trailing references/index section\n• expand e.g./i.e./et al.\ndetect scanned PDFs (chars/page) → needs OCR\nChapter detection (regex + roman validation\n+ body-gap/dedup/longest-run filters)\nChunk ~1800 chars, chapter-aware\n(never crosses a chapter boundary;\nchapter_title on first segment)\ngpt-4o-mini polish (verbatim, parallel;\nopening chunks get extra shrink slack)\n→ status: review (pause)"]
 
         Review["Admin review\n─────────────\nGET /books/{id}/segments\nedit segments if needed\nPOST /books/{id}/synthesize"]
         Ingest -->|"status: review"| Review
@@ -40,6 +40,8 @@ flowchart TD
     DB -->|"poll every 3s"| Frontend
     Frontend["React Frontend\n─────────────\nBook cards\nStatus + progress bar\nReview modal + Approve\nEdit modal (+ narrator voice\npreset & custom instructions)\n+ Suggest\nReprocess (re-run ingest,\n± replace PDF)"]
     Frontend -->|"POST /books/{id}/reprocess\narchive audio → audio-archive/,\nclear segments, ± new PDF → R2"| Queue
+    Refresh["POST /books/{id}/refresh\n(admin, rendered book)\n─────────────\nrefresh_book_text (ingest queue)\nre-extract + re-clean → align vs\nstored segments (services/diff.py)\nunchanged → keep row + audio\nchanged/new → pending → synth\nunclaimed → retire (archive audio)\nabort if extraction looks degraded"]
+    Refresh -->|"changed segments only\n(synthesize_book)"| Queue
     Frontend -->|"GET /api/audio/{id}?narrator={key}\n→ 302 to signed R2 URL\n(1 hr expiry)"| R2
     R2["Cloudflare R2\n─────────────\nPrivate bucket\nSigned URLs\nNo egress fees"]
     R2 -->|"Audio stream\n(range requests)"| Player["Audio Player\n─────────────\nSegment pills\nChapter dropdown + jump\n±15s skip\nOverall progress\nVoice toggle (narrations)"]
@@ -63,6 +65,27 @@ Listeners toggle voices in the player; the choice is remembered per book
 (localStorage) and the audio route serves the matching take
 (`GET /api/audio/{segment_id}?narrator={key}`), falling back to the primary
 take when a narrator is omitted or its take isn't rendered yet.
+
+## Diff-based text refresh (backfill)
+
+`POST /books/{id}/refresh` rolls a heuristics improvement across an
+already-rendered book without re-paying TTS for the whole thing.
+`refresh_book_text` re-extracts and re-cleans the PDF with the current
+pipeline, then aligns the new chunks against the stored segments
+(`services/diff.py`, sequence diff over whitespace-normalized text with a
+strict 0.998 fuzzy floor): unchanged chunks keep their segment rows, audio,
+and alternate-narration takes; changed or new chunks become `pending` and are
+synthesized via the normal `synthesize_book` chord; segments no chunk claims
+are retired with their audio archived to `audio-archive/` (same policy as
+reprocess — never delete paid-for takes). A refresh whose extraction looks
+scanned or yields < 50% of the stored characters aborts with a warning event
+instead of degrading the book. Each run records an `info` pipeline event with
+kept/queued/retired counts.
+
+Because a diff can renumber segments, synthesized audio keys are per-row
+(`audio/{book}/seg{id}.mp3`, `audio/{book}/{narrator}/sa{id}.mp3`), not
+per-order — order-derived keys could collide with a carried-over segment's
+audio. Old order-based keys stay valid; `audio_path` on the row is the truth.
 
 ## Status flow
 
