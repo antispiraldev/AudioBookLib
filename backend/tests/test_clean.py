@@ -109,10 +109,36 @@ def test_clean_many_empty():
     assert clean.clean_many([]) == ([], 0)
 
 
+def test_opening_chunks_allowed_to_shrink_hard():
+    # A title-page-heavy opening chunk legitimately loses most of its length;
+    # the same shrink deep in the book means truncation and must fall back.
+    _stub_client(lambda t: t[: int(len(t) * 0.4)])
+    try:
+        texts = ["front matter junk " * 30] * 5
+        out, fallbacks = clean.clean_many(texts)
+        # chunks 0-1 accept the 60% shrink; chunks 2+ reject it
+        assert out[0] == texts[0][: int(len(texts[0]) * 0.4)].strip()
+        assert out[1] == texts[1][: int(len(texts[1]) * 0.4)].strip()
+        assert out[2] == texts[2] and out[4] == texts[4]
+        assert fallbacks == 3, fallbacks
+    finally:
+        _restore()
+
+
+def test_growth_still_capped_on_opening_chunks():
+    _stub_client(lambda t: t * 2)  # runaway doubling
+    try:
+        texts = ["opening chunk " * 20, "second chunk " * 20]
+        out, fallbacks = clean.clean_many(texts)
+        assert out == texts and fallbacks == 2
+    finally:
+        _restore()
+
+
 def test_clean_many_runs_in_parallel():
     # Prove the ThreadPoolExecutor actually overlaps the network-bound calls.
     orig = clean._clean_one
-    clean._clean_one = lambda t: (time.sleep(0.2) or (t, True))
+    clean._clean_one = lambda t, *a: (time.sleep(0.2) or (t, True))
     try:
         started = time.monotonic()
         out, fallbacks = clean.clean_many([f"t{i}" for i in range(16)], max_workers=8)
@@ -126,7 +152,7 @@ def test_clean_many_runs_in_parallel():
 
 def test_clean_many_respects_concurrency_arg():
     orig = clean._clean_one
-    clean._clean_one = lambda t: (time.sleep(0.2) or (t, True))
+    clean._clean_one = lambda t, *a: (time.sleep(0.2) or (t, True))
     try:
         started = time.monotonic()
         clean.clean_many([f"t{i}" for i in range(4)], max_workers=1)

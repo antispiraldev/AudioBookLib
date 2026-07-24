@@ -85,6 +85,34 @@ selectable and are still the cheap path.
 - [ ] Part II batch (books 28–47, seeded 2026-07-20 from clean Gutenberg
       texts): user reviewing/approving; hide any with transcription issues.
 
+### Text-quality survey + diff backfill (2026-07-24)
+
+Corpus survey found two ingest cohorts split at 2026-07-13 (when the cleaning
+heuristics + LLM polish landed): pre-heuristics "legacy" books carry raw
+extraction (ligatures, Gutenberg banners, ~3300-char segments), and even
+modern books leak running headers ("BEYOND GOOD AND EVIL 127" mid-sentence),
+transcriber markup, and back-of-book indexes. Heuristics hardened (see
+`PIPELINE.md`) and a diff-based backfill added (`POST /books/{id}/refresh`)
+that re-synthesizes only changed segments.
+
+- [x] Hidden garbled-source books 5 (Language of Flowers), 12 (Meditations),
+      14 (Beyond Good and Evil), 19 (Origin of Species) — OCR-salad sources
+      that heuristics can't fix (2026-07-23, prod `hidden=true`).
+- [x] All 45 existing books pinned `tts_narrator='older_man'` (prod,
+      2026-07-24): their audio is onyx, and a NULL narrator now resolves to
+      the ElevenLabs `storyteller` default — an unpinned refresh would have
+      switched voice mid-book and hit the character-metered EL path.
+- [ ] Replace hidden books' PDFs with clean sources (Gutenberg text-based
+      PDFs) and reprocess; book 10 (Self-Reliance, Roycroft edition) is
+      borderline word-salad too — candidate for source replacement.
+- [ ] Admin UI button for `POST /books/{id}/refresh` (backend-only for now;
+      backfills run via curl/celery from the droplet).
+- [ ] Alternate-narration takes of *changed* segments are dropped by refresh
+      (primary re-renders; alternates fall back until re-requested via
+      `POST /books/{id}/narrations`).
+- [ ] `backend/scripts/text_qa.py` — artifact-prevalence report; run before/
+      after heuristics changes or backfills.
+
 ## Worker throughput
 
 Done in PR #24 (live 2026-07-19): ingest and synthesis split into separate

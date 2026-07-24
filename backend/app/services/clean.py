@@ -17,6 +17,14 @@ CLEAN_CONCURRENCY = int(os.getenv("CLEAN_CONCURRENCY", "8"))
 # paraphrased, truncated, or ran away — in which case we keep the heuristic text.
 _MAX_LENGTH_DRIFT = 0.35
 
+# A book's opening chunks are where title pages, TOCs, and library stamps live —
+# the RIGHT cleaning there often deletes over half the chunk, which the normal
+# drift guard would reject (keeping precisely the debris we most want gone, in
+# the segment every listener hears first). Give the first few chunks extra
+# shrink room; growth stays capped at _MAX_LENGTH_DRIFT everywhere.
+_OPENING_CHUNKS = 2
+_OPENING_MAX_SHRINK = 0.75
+
 _SYSTEM_PROMPT = (
     "You clean OCR/PDF-extracted book text for audiobook narration. "
     "Remove residual page artifacts, footnote debris, stray citation, figure, "
@@ -55,12 +63,16 @@ def clean_many(texts: List[str], max_workers: int = 0) -> Tuple[List[str], int]:
     if not texts:
         return [], 0
     workers = max_workers or CLEAN_CONCURRENCY
+    shrinks = [
+        _OPENING_MAX_SHRINK if i < _OPENING_CHUNKS else _MAX_LENGTH_DRIFT
+        for i in range(len(texts))
+    ]
     with ThreadPoolExecutor(max_workers=min(workers, len(texts))) as pool:
-        results = list(pool.map(_clean_one, texts))
+        results = list(pool.map(_clean_one, texts, shrinks))
     return [t for t, _ in results], sum(1 for _, used in results if not used)
 
 
-def _clean_one(text: str) -> Tuple[str, bool]:
+def _clean_one(text: str, max_shrink: float = _MAX_LENGTH_DRIFT) -> Tuple[str, bool]:
     """Return (text, used_llm). used_llm is False whenever we fell back."""
     if not text.strip():
         return text, True
@@ -83,12 +95,13 @@ def _clean_one(text: str) -> Tuple[str, bool]:
         log.warning("llm_clean returned empty output; keeping heuristic text")
         return text, False
 
-    drift = abs(len(cleaned) - len(text)) / max(len(text), 1)
-    if drift > _MAX_LENGTH_DRIFT:
+    delta = (len(cleaned) - len(text)) / max(len(text), 1)
+    limit = _MAX_LENGTH_DRIFT if delta > 0 else max_shrink
+    if abs(delta) > limit:
         log.warning(
             "llm_clean length drift %.0f%% exceeds %.0f%%; keeping heuristic text",
-            drift * 100,
-            _MAX_LENGTH_DRIFT * 100,
+            abs(delta) * 100,
+            limit * 100,
         )
         return text, False
 

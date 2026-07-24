@@ -103,11 +103,37 @@ def _is_prose_line(line: str) -> bool:
     return len(_STANDALONE_NUM_RE.findall(s)) <= 1
 
 
+def _toc_run_start(lines: List[str], limit: int) -> Optional[int]:
+    """Start index of a modern-ebook TOC run near the top, or None.
+
+    Ebook PDFs (no 'Contents' heading font) often open with a column of
+    navigation lines — Cover / Title / Chapter 1 / Chapter 2 / … / Epilogue /
+    Also by <author>. Five consecutive such lines (blanks don't break the run)
+    is unmistakably a TOC, never prose.
+    """
+    run_start = None
+    run = 0
+    for i, ln in enumerate(lines[:limit]):
+        s = ln.strip()
+        if not s:
+            continue
+        if _TOC_LINE_RE.match(s):
+            if run == 0:
+                run_start = i
+            run += 1
+            if run >= 5:
+                return run_start
+        else:
+            run = 0
+    return None
+
+
 def _strip_front_matter(text: str) -> str:
     """Drop a leading table-of-contents / list-of-illustrations block.
 
-    Conservative: only fires when a 'Contents' heading appears near the top and
-    a run of real body prose is found after it; otherwise the text is untouched.
+    Conservative: only fires when a 'Contents' heading (or an unmistakable
+    ebook TOC run) appears near the top and a run of real body prose is found
+    after it; otherwise the text is untouched.
     """
     lines = text.split("\n")
     limit = max(1, len(lines) // 6)  # front matter lives in the first ~15%
@@ -116,26 +142,84 @@ def _strip_front_matter(text: str) -> str:
         None,
     )
     if contents_idx is None:
+        contents_idx = _toc_run_start(lines, limit)
+    if contents_idx is None:
         return text
 
-    # Find where the body starts: the first of two consecutive prose lines.
-    body_start = None
-    run_start = None
-    run = 0
-    for i in range(contents_idx + 1, len(lines)):
-        if _is_prose_line(lines[i]):
-            if run == 0:
-                run_start = i
-            run += 1
-            if run >= 2:
-                body_start = run_start
-                break
-        else:
-            run = 0
+    body_start = _find_body_start(lines, contents_idx)
     if body_start is None:
         return text  # couldn't confidently locate the body — don't cut
 
     return "\n".join(lines[:contents_idx] + lines[body_start:])
+
+
+# A TOC entry's dotted leader ("INTRODUCTION . . . . 3")
+_DOT_LEADER_RE = re.compile(r"(?:\.\s*){4,}")
+
+
+def _find_body_start(lines: List[str], anchor: int) -> Optional[int]:
+    """First body line after a TOC anchor, or None if we can't tell.
+
+    Handles both extraction shapes. Line-per-source-line docs put prose in
+    consecutive runs, so two prose lines in a row (blank paragraph gaps don't
+    break a run — that reset once cost a book 60% of its text) mark the body.
+    Block-per-paragraph docs never have adjacent prose lines (every paragraph
+    is one line surrounded by blanks), so there the first prose line is the
+    body. Finally, walk back over ALL-CAPS heading lines stuck to the body
+    ("INTRODUCTION", "CHAPTER 1") — they are narration, not TOC.
+    """
+    prose_idxs = [
+        i for i in range(anchor + 1, len(lines)) if _is_prose_line(lines[i])
+    ]
+    if not prose_idxs:
+        return None
+    pairs = sum(1 for a, b in zip(prose_idxs, prose_idxs[1:]) if b == a + 1)
+    blocky = pairs < max(1, len(prose_idxs) // 5)
+
+    if blocky:
+        body = prose_idxs[0]
+    else:
+        body = None
+        run_start = None
+        run = 0
+        for i in range(anchor + 1, len(lines)):
+            if not lines[i].strip():
+                continue  # paragraph gap — doesn't break a prose run
+            if _is_prose_line(lines[i]):
+                if run == 0:
+                    run_start = i
+                run += 1
+                if run >= 2:
+                    body = run_start
+                    break
+            else:
+                run = 0
+        if body is None:
+            return None
+
+    # Re-attach heading lines directly above the body. ALL-CAPS only: that
+    # keeps "INTRODUCTION" / "CHAPTER 1" while never re-absorbing TOC entries
+    # like Dune's title-cased "Chapter 12" navigation lines.
+    j = body - 1
+    steps = 0
+    while j > anchor and steps < 4:
+        s = lines[j].strip()
+        steps += 1
+        if not s:
+            j -= 1
+            continue
+        if (
+            s == s.upper()
+            and len(s) <= 100
+            and not _DOT_LEADER_RE.search(s)
+            and len(_STANDALONE_NUM_RE.findall(s)) <= 1
+            and not _CONTENTS_HEADING_RE.match(s)
+        ):
+            body = j
+            j -= 1
+            continue
+        break
+    return body
 
 # Bracketed numeric citation markers: [12], [12, 15], [12–14]
 _CITATION_RE = re.compile(r"\[\d+(?:\s*[,–-]\s*\d+)*\]")
@@ -153,9 +237,38 @@ _GUTENBERG_END = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 
-# A line that is nothing but a references/bibliography heading
+# A line that is nothing but a references/bibliography/index heading
 _REFS_HEADING_RE = re.compile(
-    r"(?im)^\s*(references|bibliography|works cited)\.?\s*$"
+    r"(?im)^\s*(references|bibliography|works cited|index(?:\s+of\s+[\w ]{1,40})?)"
+    r"\s*[.,:]?\s*$"
+)
+# Transcriber/editorial markup that Gutenberg-style texts carry inline. Peeled
+# innermost-first over a few passes so [Footnote 3: ... [Greek: logos] ...]
+# comes apart; content is capped so an unbalanced bracket can't eat pages.
+_BRACKET_MARKUP_RE = re.compile(
+    r"\[\s*(?:illustration|sidenote|greek|hebrew|arabic|footnote|transcriber)"
+    r"[^\[\]]{0,3000}\]",
+    re.IGNORECASE,
+)
+# _underscore_ and =equals= emphasis from plain-text transcriptions. Bounded,
+# no internal newlines, non-space at both edges so equations ("a = b") and
+# snake_case survive.
+_UNDERSCORE_EMPHASIS_RE = re.compile(r"(?<![\w])_(\S(?:[^_\n]{0,200}\S)?)_(?![\w])")
+_EQUALS_EMPHASIS_RE = re.compile(r"(?<![\w=])=(\S(?:[^=\n]{0,60}\S)?)=(?![\w=])")
+# ASCII line-art from transcriber note boxes: +----+ borders and |...| rows
+_ASCII_BOX_RE = re.compile(r"(?m)^\s*(?:\+[-+]{3,}\+?|\|[^\n|]*\|)\s*$\n?")
+# Email addresses and arXiv identifiers read as character soup by TTS
+_EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b")
+_ARXIV_RE = re.compile(r"\barXiv:\S+", re.IGNORECASE)
+# Caret superscript notation from transcriptions: XV^e, I^{er}
+_SUPERSCRIPT_RE = re.compile(r"\^\{?[\w]{1,4}\}?")
+# 'Produced by <volunteers>' credit lines near the top of Gutenberg texts
+_PRODUCED_BY_RE = re.compile(r"(?im)^\s*produced by [^\n]{0,200}$")
+# The full Gutenberg license block when the END banner is missing/mangled
+_PG_LICENSE_RE = re.compile(
+    r"(?im)^\s*(?:START\s*:\s*FULL\s+LICENSE"
+    r"|\*{2,}\s*START:?\s+OF\s+TH(?:E|IS)\s+FULL\s+LICENSE"
+    r"|Section\s+1\.\s+General\s+Terms\s+of\s+Use)"
 )
 # Chapter/section heading at the start of a line. Text-pattern based on
 # purpose: font-size heading detection is unusable for chapters (poor scans
@@ -183,6 +296,13 @@ MIN_CHAPTER_CHARS = 600
 _CONTENTS_HEADING_RE = re.compile(r"(?i)^\s*(table\s+of\s+)?contents\s*[.,:;]*\s*$")
 # Standalone integers, used to spot page-number-dense table-of-contents lines.
 _STANDALONE_NUM_RE = re.compile(r"\b\d{1,3}\b")
+# A single navigation line in a modern-ebook TOC (see _toc_run_start).
+_TOC_LINE_RE = re.compile(
+    r"(?i)^\s*(?:chapter\s+\d+|book\s+[\divxlc]+|part\s+[\divxlc]+|epilogue"
+    r"|prologue|cover|title(?:\s+page)?|contents|copyright|dedication"
+    r"|acknowledg\w*|appendix\s+\w{1,8}|also\s+by\b.{0,60}|about\s+the\s+author"
+    r"|glossary|maps?|cartographic\s+notes[\w ]*|terminology[\w ]{0,40})\s*\.?\s*$"
+)
 # Abbreviations that TTS mishandles → spoken-form expansions. Applied before
 # sentence splitting so their internal periods don't create false boundaries.
 _ABBREVIATIONS = [
@@ -193,6 +313,76 @@ _ABBREVIATIONS = [
     (re.compile(r"\bFig\.", re.IGNORECASE), "Figure"),
     (re.compile(r"\bvs\.", re.IGNORECASE), "versus"),
 ]
+
+# Running-header detection: a short line whose digit-stripped form recurs at
+# the top/bottom of this many pages (or 1/8 of them, whichever is more) is a
+# running header/footer, not prose. Position-gated so a poem's short refrain —
+# which repeats, but mid-page — is never eligible.
+HEADER_MIN_PAGES = 3
+HEADER_PAGE_FRACTION = 8  # divisor: page_count // 8
+HEADER_MAX_LEN = 70
+# How many non-empty lines at each end of a page count as the header zone
+HEADER_ZONE_LINES = 2
+
+
+def _header_key(line: str) -> str:
+    """Normalize a candidate line so 'ORIGIN OF SPECIES 254' and
+    '292 ORIGIN OF SPECIES' collapse to the same key (page numbers vary,
+    the title doesn't)."""
+    s = re.sub(r"[\d]+", " ", line.lower())
+    s = re.sub(r"[^\w]+", " ", s)
+    return " ".join(s.split())
+
+
+def _header_candidate(line: str) -> Optional[str]:
+    """The recurrence key for a line that could be a running header, else None.
+
+    Chapter-style headings are exempt: their digit-stripped forms ("chapter",
+    "book") recur across the whole document by construction, and dropping them
+    would blind chapter detection — the boundary filters in _find_boundaries
+    already handle per-page chapter echoes.
+    """
+    s = line.strip()
+    if not s or len(s) > HEADER_MAX_LEN:
+        return None
+    if _CHAPTER_RE.match(s) or _LONE_KEYWORD_RE.match(s):
+        return None
+    key = _header_key(s)
+    return key or None
+
+
+def _strip_running_headers(pages_text: List[str]) -> List[str]:
+    """Remove running headers/footers that escaped the margin-zone filter.
+
+    Some scans set headers well inside the text area (or PyMuPDF merges them
+    into body blocks), so position alone misses them — see 'BEYOND GOOD AND
+    EVIL 127' landing mid-sentence. Instead: any short line whose digit-
+    stripped form appears in the top/bottom lines of enough pages is a running
+    header, and every occurrence of it is dropped.
+    """
+    page_count = len(pages_text)
+    threshold = max(HEADER_MIN_PAGES, page_count // HEADER_PAGE_FRACTION)
+
+    pages_seen: Counter = Counter()
+    for text in pages_text:
+        lines = [ln for ln in text.split("\n") if ln.strip()]
+        zone = lines[:HEADER_ZONE_LINES] + lines[-HEADER_ZONE_LINES:]
+        keys = {k for k in (_header_candidate(ln) for ln in zone) if k}
+        pages_seen.update(keys)
+
+    header_keys = {k for k, n in pages_seen.items() if n >= threshold}
+    if not header_keys:
+        return pages_text
+
+    out = []
+    for text in pages_text:
+        kept = [
+            ln for ln in text.split("\n")
+            if _header_candidate(ln) not in header_keys
+        ]
+        out.append("\n".join(kept))
+    return out
+
 
 # Fraction of page height treated as header/footer zone
 MARGIN_FRACTION = 0.08
@@ -363,6 +553,7 @@ def extract_text_chunks(pdf_path: str) -> tuple[int, List[Chunk]]:
     page_count = len(doc)
     pages_text = [_extract_page(page) for page in doc]
     doc.close()
+    pages_text = _strip_running_headers(pages_text)
     full_text = "\n\n".join(t for t in pages_text if t)
     # Some PDFs yield NUL characters, which Postgres rejects in text columns
     full_text = full_text.replace("\x00", "")
@@ -382,19 +573,41 @@ def _normalize_text(text: str) -> str:
     end = _GUTENBERG_END.search(text)
     if end:
         text = text[: end.start()]
+    else:
+        # Older PG texts leak the license without a recognizable END banner —
+        # cut at the license's own opening line when it sits in the tail.
+        lic = _PG_LICENSE_RE.search(text, int(len(text) * 0.7))
+        if lic:
+            text = text[: lic.start()]
+
+    # Volunteer credit lines near the top ("Produced by David Widger ...")
+    head = int(len(text) * 0.15)
+    text = _PRODUCED_BY_RE.sub("", text[:head]) + text[head:]
 
     # Drop a leading table-of-contents / list-of-illustrations block
     text = _strip_front_matter(text)
 
-    # Drop a trailing references/bibliography section, but only when it appears
-    # in the last ~30% of the document so a mid-body mention isn't cut.
+    # Drop a trailing references/bibliography/index section, but only when it
+    # appears in the last ~30% of the document so a mid-body mention isn't cut.
     for match in _REFS_HEADING_RE.finditer(text):
         if match.start() >= len(text) * 0.7:
             text = text[: match.start()]
             break
 
+    # Transcriber/editorial markup — peel innermost-first so nesting unwinds
+    for _ in range(3):
+        text, n = _BRACKET_MARKUP_RE.subn("", text)
+        if not n:
+            break
+    text = _ASCII_BOX_RE.sub("", text)
+    text = _UNDERSCORE_EMPHASIS_RE.sub(r"\1", text)
+    text = _EQUALS_EMPHASIS_RE.sub(r"\1", text)
+    text = _SUPERSCRIPT_RE.sub("", text)
+
     text = _CITATION_RE.sub("", text)
     text = _URL_RE.sub("", text)
+    text = _EMAIL_RE.sub("", text)
+    text = _ARXIV_RE.sub("", text)
     for pattern, replacement in _ABBREVIATIONS:
         text = pattern.sub(replacement, text)
 

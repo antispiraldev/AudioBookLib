@@ -1,6 +1,7 @@
 import logging
 import os
 import traceback as tb
+from datetime import datetime, timezone
 
 from celery import chord, group
 from celery.signals import (
@@ -14,6 +15,7 @@ from .celery_app import celery, queue_for
 from .database import SessionLocal
 from .models import Book, Segment, SegmentAudio
 from .services.clean import clean_many
+from .services.diff import align_texts
 from .services.events import record_pipeline_event
 from .services.pdf import extract_text_chunks, looks_scanned
 from .services import storage, tts
@@ -102,6 +104,116 @@ def ingest_book(book_id: int) -> None:
 
 
 @celery.task
+def refresh_book_text(book_id: int) -> None:
+    """Diff-based backfill: re-extract a book with the current heuristics and
+    re-synthesize ONLY the segments whose text actually changed.
+
+    Unlike reprocess (which clears everything and re-pays TTS for the whole
+    book), this aligns the freshly cleaned chunks against the existing
+    segments: unchanged chunks keep their rows, audio, and alternate-narration
+    takes; changed/new chunks become pending and are synthesized; segments no
+    new chunk claims are retired (their audio archived, not deleted). Runs on
+    the ingest queue — PyMuPDF extraction is the memory-heavy part.
+    """
+    db = SessionLocal()
+    dispatch = False
+    try:
+        book = db.get(Book, book_id)
+        if not book:
+            return
+
+        with storage.local_pdf(book.pdf_path) as pdf_path:
+            page_count, chunks = extract_text_chunks(pdf_path)
+
+        old_segments = (
+            db.query(Segment)
+            .filter(Segment.book_id == book_id)
+            .order_by(Segment.order)
+            .all()
+        )
+        # Refuse to degrade a working book: a scanned-looking or drastically
+        # smaller extraction means the source (or a heuristic) regressed —
+        # keep the stored segments untouched and surface a warning instead.
+        total_chars = sum(len(c.text) for c in chunks)
+        old_chars = sum(len(s.text) for s in old_segments)
+        if looks_scanned(page_count, total_chars) or total_chars < old_chars * 0.5:
+            record_pipeline_event(
+                book_id, "refresh_book_text", "warning",
+                f"Refresh aborted: new extraction yields {total_chars} chars "
+                f"vs {old_chars} stored — refusing to replace the segments.",
+            )
+            return
+
+        texts, fallbacks = clean_many([c.text for c in chunks])
+        if fallbacks:
+            record_pipeline_event(
+                book_id, "refresh_book_text", "warning",
+                f"{fallbacks}/{len(chunks)} chunks kept heuristic text "
+                f"(LLM polish unavailable).",
+            )
+
+        mapping = align_texts([s.text for s in old_segments], texts)
+        reused = {oi for oi in mapping if oi is not None}
+
+        # Retire segments no new chunk claims — archive their audio like
+        # reprocess does (resynthesis costs real money; R2 storage doesn't).
+        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        retired = [s for i, s in enumerate(old_segments) if i not in reused]
+        storage.archive_keys(
+            [s.audio_path for s in retired
+             if s.audio_path and not s.audio_path.startswith("storage/")],
+            f"audio-archive/{book_id}/{ts}/",
+        )
+        for seg in retired:
+            db.delete(seg)
+        db.flush()
+
+        changed = 0
+        for j, (chunk, text) in enumerate(zip(chunks, texts)):
+            oi = mapping[j]
+            if oi is None:
+                changed += 1
+                db.add(Segment(
+                    book_id=book_id,
+                    order=j,
+                    text=text,
+                    chapter_title=chunk.chapter_title,
+                    status="pending",
+                ))
+            else:
+                # Keep the stored text — its audio was rendered from it, and
+                # alignment guarantees the new text is audibly identical.
+                seg = old_segments[oi]
+                seg.order = j
+                seg.chapter_title = chunk.chapter_title
+        book.page_count = page_count
+        dispatch = changed > 0
+        if dispatch:
+            book.status = "synthesizing"
+        db.commit()
+
+        record_pipeline_event(
+            book_id, "refresh_book_text", "info",
+            f"Text refresh: {len(old_segments) - len(retired)} segments kept "
+            f"their audio, {changed} queued for synthesis, {len(retired)} "
+            f"retired ({len(old_segments)} before, {len(chunks)} after).",
+        )
+    except Exception as e:
+        log.exception("Text refresh failed for book %s", book_id)
+        record_pipeline_event(
+            book_id, "refresh_book_text", "error",
+            f"{type(e).__name__}: {e}", tb.format_exc(),
+        )
+        db.rollback()
+        return
+    finally:
+        db.close()
+
+    if dispatch:
+        synthesize_book.delay(book_id)
+
+
+@celery.task
 def synthesize_book(book_id: int) -> None:
     """Retry: reset stuck/errored segments and re-synthesize in parallel."""
     db = SessionLocal()
@@ -157,14 +269,17 @@ def synthesize_segment(segment_id: int, book_id: int) -> str:
             book.tts_instructions if book else None,
         )
 
-        local_path = os.path.join(STORAGE_AUDIO, str(book_id), f"{seg.order:04d}.mp3")
+        # Keys are per-row (seg{id}), not per-order: diff-backfill renumbers
+        # surviving segments, so an order-derived key could collide with a
+        # carried-over segment still serving audio under that same order.
+        local_path = os.path.join(STORAGE_AUDIO, str(book_id), f"seg{seg.id}.mp3")
         seg.status = "processing"
         db.commit()
 
         tts.synthesize_preset(seg.text, local_path, preset)
 
         if storage.is_enabled():
-            key = f"audio/{book_id}/{seg.order:04d}.mp3"
+            key = f"audio/{book_id}/seg{seg.id}.mp3"
             storage.upload(local_path, key)
             os.remove(local_path)
             seg.audio_path = key
@@ -267,8 +382,10 @@ def synthesize_segment_audio(segment_audio_id: int, book_id: int) -> str:
 
         preset = tts.resolve(sa.narrator, None)
 
+        # Per-row key (sa{id}) for the same reason as the primary narration:
+        # diff-backfill renumbers segments, so order-derived keys can collide.
         local_path = os.path.join(
-            STORAGE_AUDIO, str(book_id), sa.narrator, f"{seg.order:04d}.mp3"
+            STORAGE_AUDIO, str(book_id), sa.narrator, f"sa{sa.id}.mp3"
         )
         sa.status = "processing"
         db.commit()
@@ -276,7 +393,7 @@ def synthesize_segment_audio(segment_audio_id: int, book_id: int) -> str:
         tts.synthesize_preset(seg.text, local_path, preset)
 
         if storage.is_enabled():
-            key = f"audio/{book_id}/{sa.narrator}/{seg.order:04d}.mp3"
+            key = f"audio/{book_id}/{sa.narrator}/sa{sa.id}.mp3"
             storage.upload(local_path, key)
             os.remove(local_path)
             sa.audio_path = key

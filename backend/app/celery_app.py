@@ -33,6 +33,8 @@ celery.conf.update(
     # docker-compose.worker.yml). Everything not listed defaults to "synth".
     task_routes={
         "app.tasks.ingest_book": {"queue": "ingest"},
+        # Diff-backfill re-runs extraction, so it shares ingest's memory cap
+        "app.tasks.refresh_book_text": {"queue": "ingest"},
         "app.tasks.synthesize_book": {"queue": "synth"},
         "app.tasks.synthesize_segment": {"queue": "synth"},
         "app.tasks.synthesize_narration": {"queue": "synth"},

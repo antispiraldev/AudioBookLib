@@ -106,6 +106,28 @@ def delete_prefix(prefix: str) -> None:
             client.delete_object(Bucket=_bucket(), Key=obj["Key"])
 
 
+def archive_keys(keys, dst_prefix: str) -> int:
+    """Move individual objects under dst_prefix (server-side copy + delete),
+    keeping their basenames. Used by diff-backfill, which retires specific
+    segments' audio rather than a whole prefix. Returns the count moved."""
+    client = _get_client()
+    if not client:
+        return 0
+    bucket = _bucket()
+    moved = 0
+    for key in keys:
+        dst = dst_prefix + key.rsplit("/", 1)[-1]
+        try:
+            client.copy_object(
+                Bucket=bucket, CopySource={"Bucket": bucket, "Key": key}, Key=dst
+            )
+            client.delete_object(Bucket=bucket, Key=key)
+            moved += 1
+        except Exception:
+            continue  # a missing source object is not worth failing a backfill
+    return moved
+
+
 def archive_prefix(src_prefix: str, dst_prefix: str) -> int:
     """Move every object under src_prefix to dst_prefix (server-side copy +
     delete). Returns the count moved; no-op (0) if R2 is off."""
