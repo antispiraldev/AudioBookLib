@@ -9,12 +9,17 @@
 #
 # Requires the same .env as the web droplet (R2 + OpenAI creds); the DB/broker
 # URLs below intentionally override whatever .env contains.
-# Two workers split by queue (see backend/app/celery_app.py task_routes):
+# Three workers split by queue (see backend/app/celery_app.py — task_routes for
+# the static per-task split, PROVIDER_QUEUE for the per-provider synth split):
 #
-#   worker-synth  — network-bound TTS calls; RAM-cheap, so run many in parallel.
+#   worker-synth  — network-bound OpenAI TTS calls; RAM-cheap, so run many in
+#                   parallel. Also renders every non-ElevenLabs provider.
 #   worker-ingest — PyMuPDF PDF extraction; balloons a 25MB PDF to hundreds of
-#                   MB per task, so it stays capped at 2 (the droplet has NO
-#                   swap — an OOM is a hard kill, not a slowdown).
+#                   MB per task, so it stays capped at 2. The droplet now has a
+#                   2GB swap file, but treat it as a cushion, not capacity.
+#   worker-el     — ElevenLabs premium narrators only. Exists purely to cap
+#                   concurrency independently: EL limits *concurrent* requests
+#                   per plan (~5-15), well under SYNTH_CONCURRENCY.
 #
 # worker-synth also consumes the legacy default "celery" queue so tasks enqueued
 # before this split (or by an un-migrated backend) still drain.
@@ -33,6 +38,20 @@ services:
     build: ./backend
     # Tune via SYNTH_CONCURRENCY in .env (no rebuild needed: edit + `up -d`).
     command: celery -A app.tasks worker --loglevel=info -n synth@%h -Q synth,celery --concurrency=${SYNTH_CONCURRENCY:-8}
+    volumes:
+      - ./storage:/app/storage
+      - ./backend:/app
+    env_file: .env
+    environment: *worker-env
+    restart: unless-stopped
+
+  worker-el:
+    build: ./backend
+    # Tune via EL_CONCURRENCY in .env (no rebuild needed: edit + `up -d`).
+    # Keep it at or below the ElevenLabs plan's *concurrent request* limit —
+    # that cap is the entire reason this queue is separate from synth. The
+    # default of 3 is deliberately conservative: it is safe on every EL tier.
+    command: celery -A app.tasks worker --loglevel=info -n el@%h -Q synth_el --concurrency=${EL_CONCURRENCY:-3}
     volumes:
       - ./storage:/app/storage
       - ./backend:/app
