@@ -35,23 +35,34 @@ was fixed as a prompt problem, not a provider one, and voice is now selectable.
       Admin generates extra voices from the Edit modal. Verify in prod after deploy;
       the alt-render progress isn't shown on book cards, only in the Edit modal.
 
-### Premium / multi-provider (in progress — the "highest quality, cost is fine" option)
+### Premium / multi-provider — ElevenLabs is now the default provider
 
-`tts.synthesize_preset()` now dispatches by provider (openai / elevenlabs / gemini).
-Two premium ElevenLabs narrator presets (`premium_man`/`premium_woman`, multilingual_v2)
-are wired end to end and appear in the admin dropdown. `tts_ab.py --round4` blind-tests
-the OpenAI default vs premium ElevenLabs + Gemini voices.
+`tts.synthesize_preset()` dispatches by provider (openai / elevenlabs / gemini).
+`DEFAULT_NARRATOR` is **`storyteller`**, an ElevenLabs *designed* voice (generated
+from a written description via Voice Design — not cloned from anyone), with
+`elegiac` and `scholar` offered alongside it and the premade `premium_man`/
+`premium_woman` presets kept. The OpenAI presets (`older_man`/`older_woman`) remain
+selectable and are still the cheap path.
 
-- [ ] Run round 4 (`python scripts/tts_ab.py --round4`) and pick the premium
-      voice(s); the harness presets are a starting point, not a decision.
-- [ ] Confirm the premium `voice_id`s against the account with
-      `python scripts/tts_ab.py --el-list-voices` before trusting a win — the ids in
-      `NARRATORS`/`PROVIDER_PRESETS` are documented defaults, not verified per-account.
-- [ ] Set `ELEVENLABS_API_KEY` (and `GEMINI_API_KEY` for the A/B harness) in `.env`
-      on the **worker** droplet before selecting a premium narrator in prod.
-- [ ] **ElevenLabs caps *concurrent* requests per plan (often 5–15).** Synth runs at
-      `SYNTH_CONCURRENCY` 16 — a premium book will 429. Gate premium synthesis to a
-      lower concurrency (own queue) or a Scale-tier plan before shipping it widely.
+- [x] Run round 4 and pick the voice(s) — round 4 chose ElevenLabs over OpenAI;
+      a 21-voice account survey then a Voice Design round produced the three
+      designed narrators now shipping.
+- [x] Confirm `voice_id`s against the account — all confirmed via
+      `GET /v1/voices/{id}`. Note `/v1/voices` lists only the *saved* library, so a
+      premade voice missing from it is not broken; check the id endpoint instead.
+- [x] Set `ELEVENLABS_API_KEY` on the worker droplet.
+- [x] 429 handling: `_http_post` now retries 429/5xx with exponential backoff and
+      honours `Retry-After`, so exceeding the concurrency cap costs latency instead
+      of failing a segment.
+- [ ] **Cost: ElevenLabs is character-metered and is now on the default path.** A
+      ~6-hour book is roughly 300k characters, so every book costs materially more
+      than the OpenAI path did (~$5–6/book). Watch the first few books and set a
+      `character_limit` on the API key; switch `DEFAULT_NARRATOR` back to
+      `older_man` if the spend is wrong.
+- [ ] **`SYNTH_CONCURRENCY` is 16 vs ElevenLabs' ~5–15 concurrent cap.** Retry makes
+      this survivable, but the durable fix is a separate low-concurrency queue for
+      ElevenLabs synthesis (or lowering `SYNTH_CONCURRENCY` in the worker `.env`,
+      which now costs nothing on the OpenAI side since it's no longer the default).
 - [ ] Gemini is A/B-only for now — it returns PCM, so wiring it into production would
       need a PCM→MP3 transcode step the pipeline doesn't have.
 
